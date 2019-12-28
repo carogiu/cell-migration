@@ -1,7 +1,13 @@
+### Packages
+import dolfin
+from dolfin import Constant
+import numpy as np
+
 from model.model_main import main_model
 
-parameters["form_compiler"]["optimize"] = True
-parameters["form_compiler"]["cpp_optimize"] = True
+### Constants
+dolfin.parameters["form_compiler"]["optimize"] = True
+dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 
 # geometry + rep
 nx = ny = 50
@@ -21,7 +27,7 @@ M=1
 vi ="1"
 
 # test phase with a velocity
-velocity = Expression(("10* sin(x[1]) + 5 * x[0] * x[0]", "0.0"), degree=2)
+velocity = dolfin.Expression(("10* sin(x[1]) + 5 * x[0] * x[0]", "0.0"), degree=2)
 
 # set as Dolfin Constants
 factor = Constant(factor)

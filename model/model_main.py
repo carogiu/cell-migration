@@ -1,11 +1,12 @@
 ### Import
+import dolfin
+import numpy as np
 
 from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save import main_save
 from model.model_visu import main_visu
 
-import numpy as np
 
 
 ### Main function
@@ -42,7 +43,7 @@ def mesh_from_dim(nx, ny):
     :param ny: number of cells in y direction
     :return: mesh
     """
-    mesh = UnitSquareMesh.create(nx, ny, CellType.Type.quadrilateral)
+    mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
     return mesh
 
 
@@ -53,7 +54,7 @@ def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh):
     nx = ny = int(np.sqrt(mesh.num_cells()))
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(ME)
     U_flow = problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon)
-    velocity, pressure = split(U_flow)
+    velocity, pressure = dolfin.split(U_flow)
     # save the solutions
     phi_tot = np.zeros((nx + 1, ny + 1, n))
     vx_tot = np.zeros((nx + 1, ny + 1, n))
@@ -66,7 +67,7 @@ def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh):
         u0.vector()[:] = u.vector()
         u = solve_phase(a, L, u)
         U_flow = problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon)
-        velocity, pressure = split(U_flow)
+        velocity, pressure = dolfin.split(U_flow)
         phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh)
 
     return phi_tot, vx_tot, vy_tot, p_tot
