@@ -1,8 +1,8 @@
 ### Packages
 import numpy as np
 
-### Main save
 
+### Main save
 def main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh):
     """
     TODO : comment ?
@@ -16,7 +16,6 @@ def main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh):
 ### Partial saves
 
 #### Flow
-
 def array_exp_flow(U_flow, mesh):
     """
     From the function U, extract ux, uy and p and return them as nx x ny matrices
@@ -49,7 +48,6 @@ def save_flow(vx_tot, vy_tot, p_tot, U_flow, i, mesh):
 
 
 #### Phase
-
 def array_exp_phase(u, mesh):
     """
     :param u: Function of ME
