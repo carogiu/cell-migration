@@ -11,12 +11,24 @@ from model.model_visu import main_visu
 
 ### Main function
 
-def main_model(nx, ny, vi, theta, factor, epsilon, mid, dt, M, n):
+def main_model(config):
     """
     Run complete model from global main parameters and observe results.
 
     TODO : Params, Save
     """
+    #retrieve parameters
+    nx, ny = config.nx, config.ny
+    n = config.n
+    theta = config.theta
+    factor = config.factor
+    vi = config.vi
+    epsilon = config.epsilon
+    mid = config.mid
+    dt = config.dt
+    M = config.M
+
+    #Create Mesh
     mesh = mesh_from_dim(nx, ny)
     ME = space_phase(mesh)
     W_flow = space_flow(mesh)
