@@ -1,10 +1,14 @@
 import random
 from dolfin import *
 import numpy as np
-import matplotlib.pyplot as plt
 
 
+### Initialise the phase
 class InitialConditions(UserExpression):  # result is a dolfin Expression
+    """
+    TODO : comment
+    """
+
     def __init__(self, **kwargs):
         random.seed(2 + MPI.rank(MPI.comm_world))  # need to seed random number
         super().__init__(**kwargs)
@@ -26,7 +30,12 @@ class InitialConditions(UserExpression):  # result is a dolfin Expression
         return (2,)  # dimension 2 (phi,mu)
 
 
+### Initialise Problem resulution
 class CahnHilliardEquation(NonlinearProblem):
+    """
+    TODO : comment
+    """
+
     def __init__(self, a, L):
         NonlinearProblem.__init__(self)
         self.L = L
@@ -39,13 +48,20 @@ class CahnHilliardEquation(NonlinearProblem):
         assemble(self.a, tensor=A)  # computes the Jacobian matrix A
 
 
+### Main functions
 def space_phase(mesh):
+    """
+    TODO : comment
+    """
     P1 = FiniteElement("Lagrange", mesh.ufl_cell(), 1)
     ME = FunctionSpace(mesh, P1 * P1)
     return ME
 
 
 def initiate_phase(ME):
+    """
+    TODO : comment
+    """
     du = TrialFunction(ME)
     phi_test, mu_test = TestFunctions(ME)
 
@@ -62,42 +78,27 @@ def initiate_phase(ME):
     return phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0
 
 
-def mu_calc(mid, mu, mu_0):
-    return (1.0 - mid) * mu_0 + mid * mu
-
-
-def potential(phi):
-    phi = variable(phi)
-    f = 100 * phi ** 2 * (1 - phi) ** 2
-    dfdphi = diff(f, phi)
-    return dfdphi
-
-
-def problem_phase(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, lmbda, dt):
-    mu_mid = mu_calc(mid, mu, mu_0)
-
-    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * dot(velocity, grad(phi_0)) * phi_test * dx + dt * dot(
-        grad(mu_mid), grad(phi_test)) * dx
-    L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - lmbda * dot(grad(phi), grad(mu_test)) * dx
-    L = L0 + L1
-
-    a = derivative(L, u, du)
-    return a, L, u
-
-
 def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, M, epsilon):
+    """
+    TODO : comment
+    """
     mu_mid = mu_calc(mid, mu, mu_0)
 
-    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(phi_0)) * dx + dt * (M * epsilon**2) * dot(
+    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(phi_0)) * dx + dt * (
+            M * epsilon ** 2) * dot(
         grad(mu_mid), grad(phi_test)) * dx
-    L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (epsilon**2) * dot(grad(phi), grad(mu_test)) * dx
+    L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (epsilon ** 2) * dot(grad(phi), grad(mu_test)) * dx
     L = L0 + L1
 
     a = derivative(L, u, du)
+
     return a, L, u
 
 
 def solve_phase(a, L, u):
+    """
+    TODO : comment
+    """
     problem = CahnHilliardEquation(a, L)
     solver = NewtonSolver()
     solver.parameters["linear_solver"] = "lu"
@@ -107,35 +108,36 @@ def solve_phase(a, L, u):
     return u
 
 
+### Utilitaries functions
+def mu_calc(mid, mu, mu_0):
+    """
+    TODO : comment
+    """
+    return (1.0 - mid) * mu_0 + mid * mu
 
 
-def visu_phase(arr_phi, time):
-    fig = plt.figure()
-    plt.imshow(arr_phi, cmap='jet')
-    plt.colorbar()
-    plt.plot(interface(arr_phi)[:, 1], interface(arr_phi)[:, 0], c='k')
-    plt.title('phase for t=' + time)
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.show()
-    plt.close(fig)
+def potential(phi):
+    """
+    TODO :comment
+    """
+    phi = variable(phi)
+    f = 100 * phi ** 2 * (1 - phi) ** 2
+    dfdphi = diff(f, phi)
+
+    return dfdphi
 
 
-def see_all_phi(phi_tot):
-    n = phi_tot.shape[2]
-    for i in range(n):
-        if i % 2 == 0:
-            arr_phi = phi_tot[:, :, i]
-            time = str(int(i))
-            visu_phase(arr_phi, time)
+### TEST FUNCTIONS
+def problem_phase(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, lmbda, dt):
+    """
+    TODO : comment
+    """
+    mu_mid = mu_calc(mid, mu, mu_0)
 
+    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * dot(velocity, grad(phi_0)) * phi_test * dx + dt * dot(
+        grad(mu_mid), grad(phi_test)) * dx
+    L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - lmbda * dot(grad(phi), grad(mu_test)) * dx
+    L = L0 + L1
 
-def interface(arr_phi):
-    n = len(arr_phi)
-    interf = []
-    for i in range(n):
-        for j in range(n):
-            if abs(arr_phi[i, j]) < .05:
-                interf.append([i, j])
-    interf = np.asarray(interf)
-    return interf
+    a = derivative(L, u, du)
+    return a, L, u

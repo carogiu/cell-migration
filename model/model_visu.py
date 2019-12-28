@@ -1,5 +1,6 @@
 ### Packages
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 ### Main functions
@@ -77,3 +78,47 @@ def visu_flow(U_flow, mesh, time):
     plt.close(fig)
 
     return
+
+
+def visu_phase(arr_phi, time):
+    """
+    TODO : comment or delete ?
+    """
+    fig = plt.figure()
+    plt.imshow(arr_phi, cmap='jet')
+    plt.colorbar()
+    plt.plot(interface(arr_phi)[:, 1], interface(arr_phi)[:, 0], c='k')
+    plt.title('phase for t=' + time)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()
+    plt.close(fig)
+
+    return
+
+
+def see_all_phi(phi_tot):
+    """
+    TODO : comment or delete ?
+    """
+    n = phi_tot.shape[2]
+    for i in range(n):
+        if i % 2 == 0:
+            arr_phi = phi_tot[:, :, i]
+            time = str(int(i))
+            visu_phase(arr_phi, time)
+
+
+def interface(arr_phi):
+    """
+    TODO : comment or delete ?
+    """
+    n = len(arr_phi)
+    interf = []
+    for i in range(n):
+        for j in range(n):
+            if abs(arr_phi[i, j]) < .05:
+                interf.append([i, j])
+    interf = np.asarray(interf)
+
+    return interf
