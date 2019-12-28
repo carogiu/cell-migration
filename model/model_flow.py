@@ -1,7 +1,8 @@
+### Packages
 from dolfin import *
-import numpy as np
-import matplotlib.pyplot as plt
 
+
+### Main functions
 def space_flow(mesh):
     """
     Creates a function space for the flow
@@ -17,16 +18,24 @@ def space_flow(mesh):
     return W_flow
 
 
-# tells were the boundaries are (square)
-def right(x, on_boundary): return x[0] > (1.0 - DOLFIN_EPS)
+def problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon):
+    """
+    TODO : Comment
+    """
+    bcs = boundary_conditions_flow(W_flow, vi)
+    theta_p = theta_phi(theta, phi)
+    (velocity, pressure) = TrialFunctions(W_flow)
+    (v_test, p_test) = TestFunctions(W_flow)
+    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx + p_test * div(
+        velocity) * dx
+    L_flow = factor / epsilon * div(v_test) * phi * mu * dx
+    U_flow = Function(W_flow)
+    solve(a_flow == L_flow, U_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
+          form_compiler_parameters={"optimize": True})
+    return U_flow
 
 
-def left(x, on_boundary): return x[0] < DOLFIN_EPS
-
-
-def top_bottom(x, on_boundary): return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
-
-
+### CREATE BOUNDARIES
 def boundary_conditions_flow(W_flow, vi):
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
@@ -44,26 +53,40 @@ def boundary_conditions_flow(W_flow, vi):
     return bcs
 
 
+### UTILITARIES FUNCTIONS
+
+### BOUDARIES : tells were the boundaries are (square)
+def right(x, on_boundary):
+    """
+    TODO comment
+    """
+    return x[0] > (1.0 - DOLFIN_EPS)
+
+
+def left(x, on_boundary):
+    """
+    TODO : comment
+    """
+    return x[0] < DOLFIN_EPS
+
+
+def top_bottom(x, on_boundary):
+    """
+    TODO : comment
+    """
+    return x[1] > 1.0 - DOLFIN_EPS or x[1] < DOLFIN_EPS
+
+
+### Transformation
 def theta_phi(theta, phi):
+    """
+    TODO comment
+    """
     theta_p = .5 * ((1 - phi) + (1 + phi) * theta)
     return theta_p
 
 
-
-def problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon):
-    bcs = boundary_conditions_flow(W_flow, vi)
-    theta_p = theta_phi(theta, phi)
-    (velocity, pressure) = TrialFunctions(W_flow)
-    (v_test, p_test) = TestFunctions(W_flow)
-    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx + p_test * div(
-        velocity) * dx
-    L_flow = factor/epsilon * div(v_test) * phi * mu * dx
-    U_flow = Function(W_flow)
-    solve(a_flow == L_flow, U_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
-          form_compiler_parameters={"optimize": True})
-    return U_flow
-
-
+### TESTS Functions
 def problem_stokes_flow(W_flow, vi):  # THIS IS WORKING
     """
     Creates the function U for the problem of Stokes flow (U = u, p)
@@ -83,6 +106,9 @@ def problem_stokes_flow(W_flow, vi):  # THIS IS WORKING
 
 
 def flow_static_phase_no_mu(W_flow, vi, phi, theta):  # THIS IS WORKING
+    """
+    TODO : Comment
+    """
     theta_p = theta_phi(theta, phi)
     bcs = boundary_conditions_flow(W_flow, vi)
     (velocity, pressure) = TrialFunctions(W_flow)
@@ -94,47 +120,3 @@ def flow_static_phase_no_mu(W_flow, vi, phi, theta):  # THIS IS WORKING
     solve(a_flow == L_flow, U_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
           form_compiler_parameters={"optimize": True})
     return U_flow
-
-
-
-
-def visu_flow(U_flow, mesh, time):
-    """
-    To see ux, uy and p
-    :param time: time of the visualisation (string)
-    :param mesh: mesh
-    :param U_flow: Function
-    :return: None
-    """
-    arr_ux, arr_uy, arr_p = array_exp_flow(U_flow, mesh)
-    nx = ny = int(np.sqrt(mesh.num_cells()))
-    fig = plt.figure()
-    plt.imshow(arr_ux, cmap='jet', extent=[0, 1, 0, 1])
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.title('vx')
-    plt.colorbar()
-    plt.title('vx for t=' + time)
-    plt.show()
-    plt.close(fig)
-
-    fig = plt.figure()
-    plt.imshow(arr_uy, cmap='jet', extent=[0, 1, 0, 1])
-    plt.title('vy')
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.colorbar()
-    plt.title('vy for t=' + time)
-    plt.show()
-    plt.close(fig)
-
-    fig = plt.figure()
-    plt.imshow(arr_p, cmap='jet', extent=[0, 1, 0, 1])
-    plt.title('p')
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.colorbar()
-    plt.title('p for t=' + time)
-    plt.show()
-    plt.close(fig)
-
