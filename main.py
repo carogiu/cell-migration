@@ -1,12 +1,6 @@
 ### Packages
-import dolfin
-
 from model.model_main import main_model
 from model.model_parameter_class import ModelParam
-
-### Constants
-dolfin.parameters["form_compiler"]["optimize"] = True
-dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 
 ### Parameters
 config = ModelParam(

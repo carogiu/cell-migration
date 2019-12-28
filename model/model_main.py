@@ -7,6 +7,9 @@ from model.model_phase import initiate_phase, space_phase, problem_phase_with_ep
 from model.model_save import main_save
 from model.model_visu import main_visu
 
+### Constants
+dolfin.parameters["form_compiler"]["optimize"] = True
+dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 
 
 ### Main function
