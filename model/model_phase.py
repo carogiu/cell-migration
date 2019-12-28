@@ -107,25 +107,6 @@ def solve_phase(a, L, u):
     return u
 
 
-def array_exp_phase(u, mesh):
-    """
-    :param u: Function of ME
-    :return: array phi (nx x ny) and array mu (nx x ny) for easier plot
-    """
-    arr = u.compute_vertex_values(mesh)
-    nx = ny = int(np.sqrt(mesh.num_cells()))
-    n = len(arr)
-    mid = int(n / 2)
-    arr_phi = arr[0:mid]
-    arr_mu = arr[mid:n]
-    arr_phi = np.reshape(arr_phi, (nx + 1, ny + 1))[::-1]
-    arr_mu = np.reshape(arr_mu, (nx + 1, ny + 1))[::-1]
-    return arr_phi, arr_mu
-
-
-def save_phi(phi_tot, u, i, mesh):
-    arr_phi, arr_mu = array_exp_phase(u, mesh)
-    phi_tot[:, :, i] = arr_phi
 
 
 def visu_phase(arr_phi, time):

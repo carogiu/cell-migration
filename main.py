@@ -1,8 +1,4 @@
-import time
-
-from flow import *
-from phase import *
-from common import *
+from model.model_main import main_model
 
 parameters["form_compiler"]["optimize"] = True
 parameters["form_compiler"]["cpp_optimize"] = True
@@ -36,13 +32,4 @@ lmbda = Constant(lmbda)
 dt = Constant(dt)
 M = Constant(M)
 
-# initiate the problem
-mesh = mesh_from_dim(nx, ny)
-ME = space_phase(mesh)
-W_flow = space_flow(mesh)
-
-phi_tot, vx_tot, vy_tot, p_tot = time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh)
-see_all(phi_tot, 'Phase')
-see_all(vx_tot, 'Vx')
-see_all(vy_tot, 'Vy')
-see_all(p_tot, 'Pressure')
+main_model(nx, ny, vi, theta, factor, epsilon, mid, dt, M, n)
