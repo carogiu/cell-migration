@@ -1,5 +1,5 @@
 ### Packages
-from model.model_main import main_model
+from model.main import main_model
 from model.model_parameter_class import ModelParam
 
 ### Parameters
