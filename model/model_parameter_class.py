@@ -9,8 +9,17 @@ class ModelParam:
     """A configuration for the model.
 
     Attributes:
-        TODO : precise attributes of parameters
-        TODO : change names for clear ones (M ?)
+                TODO : change names for clear ones (M ?)
+
+    nx, ny : int, size of the mesh
+    n : int, number of time steps
+    theta : float, relative viscosity (usually 0.5, 1 or 2)
+    epsilon : float, ratio between interface and length scale
+    lmbda : float, parameter for the example model
+    dt : float, size of a time step
+    M : float, energy factor
+    vi : Expression, inflow velocity
+    velocity : Expression, inflow velocity (if the inflow velocity is not a constant)
     """
 
     def __init__(self, nx, ny, n, theta, epsilon, lmbda, dt, M, vi,

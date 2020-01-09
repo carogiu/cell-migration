@@ -17,8 +17,6 @@ dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 def main_model(config):
     """
     Run complete model from global main parameters and observe results.
-
-    TODO : Params, Save
     """
     #retrieve parameters
     nx, ny = config.nx, config.ny
@@ -38,6 +36,8 @@ def main_model(config):
 
     # Compute the model
     phi_tot, vx_tot, vy_tot, p_tot = time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh)
+
+    # TODO : save the arrays as csv files in the future
 
     # Plots
     main_visu(phi_tot, 'Phase')
@@ -64,7 +64,19 @@ def mesh_from_dim(nx, ny):
 
 def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh):
     """
-    TODO : comment
+
+    @param ME: Function space, for the phase
+    @param W_flow: Function space, for the flow
+    @param vi: Expression, initial velocity
+    @param theta: float, friction ratio
+    @param factor: float, numerical factor
+    @param epsilon: float, length scale ratio
+    @param mid: float, time discretization Crank Nicholson
+    @param dt: float, time step
+    @param M: float, energy value
+    @param n: int, number of time steps
+    @param mesh: dolfin mesh
+    @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
     nx = ny = int(np.sqrt(mesh.num_cells()))
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(ME)

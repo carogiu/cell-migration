@@ -6,7 +6,8 @@ import numpy as np
 ### Initialise the phase
 class InitialConditions(UserExpression):  # result is a dolfin Expression
     """
-    TODO : comment
+    Creates the initial condition for the phase
+    TODO: Needs to be improved, epsilon should be defined only outside of the function
     """
 
     def __init__(self, **kwargs):
@@ -33,7 +34,7 @@ class InitialConditions(UserExpression):  # result is a dolfin Expression
 ### Initialise Problem resulution
 class CahnHilliardEquation(NonlinearProblem):
     """
-    TODO : comment
+    Creates the problem, initiates the residual vector and the Jacobian matrix
     """
 
     def __init__(self, a, L):
@@ -51,7 +52,9 @@ class CahnHilliardEquation(NonlinearProblem):
 ### Main functions
 def space_phase(mesh):
     """
-    TODO : comment
+    Returns the function space for the phase and mu
+    @param mesh: dolfin mesh
+    @return: Function space
     """
     P1 = FiniteElement("Lagrange", mesh.ufl_cell(), 1)
     ME = FunctionSpace(mesh, P1 * P1)
@@ -60,7 +63,10 @@ def space_phase(mesh):
 
 def initiate_phase(ME):
     """
-    TODO : comment
+    Initiate the phase : from the function space, creates trial functions and test functions, and applies the
+    initial conditions
+    @param ME: Function space
+    @return: Functions
     """
     du = TrialFunction(ME)
     phi_test, mu_test = TestFunctions(ME)
@@ -80,7 +86,21 @@ def initiate_phase(ME):
 
 def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, M, epsilon):
     """
-    TODO : comment
+    Creates the variational problem
+    @param phi_test: Test function
+    @param mu_test: Test function
+    @param du: Trial function
+    @param u: Function, current solution
+    @param phi: Function, current solution
+    @param mu: Function, current solution
+    @param phi_0: Function, previous solution
+    @param mu_0: Function, previous solution
+    @param velocity: Expression, velocity of the flow for each point of the mesh
+    @param mid: float, for the time discretization
+    @param dt: float, time step
+    @param M: float, energy factor
+    @param epsilon: float, length ratio
+    @return: Functions
     """
     mu_mid = mu_calc(mid, mu, mu_0)
 
@@ -97,7 +117,11 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
 
 def solve_phase(a, L, u):
     """
-    TODO : comment
+    Solves the variational problem
+    @param a: Function
+    @param L: Function
+    @param u: Function
+    @return: Function
     """
     problem = CahnHilliardEquation(a, L)
     solver = NewtonSolver()
@@ -111,14 +135,20 @@ def solve_phase(a, L, u):
 ### Utilitaries functions
 def mu_calc(mid, mu, mu_0):
     """
-    TODO : comment
+    Time discretization (Crank Nicholson method)
+    @param mid: float, time discretization
+    @param mu: Function, current solution
+    @param mu_0: Function, previous solution
+    @return: Function
     """
     return (1.0 - mid) * mu_0 + mid * mu
 
 
 def potential(phi):
     """
-    TODO :comment
+    (For the example) Defines the potential
+    @param phi: Function
+    @return: Function
     """
     phi = variable(phi)
     f = 100 * phi ** 2 * (1 - phi) ** 2
@@ -130,7 +160,20 @@ def potential(phi):
 ### TEST FUNCTIONS
 def problem_phase(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, lmbda, dt):
     """
-    TODO : comment
+    Defines the problem for the example
+    @param phi_test: Test function
+    @param mu_test: Test function
+    @param du: Trial Function
+    @param u: Function, current solution
+    @param phi: Function, current solution
+    @param mu: Function, current solution
+    @param phi_0: Function, previous solution
+    @param mu_0: Function, previous solution
+    @param velocity: Expression
+    @param mid: float
+    @param lmbda: float
+    @param dt: float
+    @return: Functions
     """
     mu_mid = mu_calc(mid, mu, mu_0)
 

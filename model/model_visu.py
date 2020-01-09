@@ -7,7 +7,10 @@ import numpy as np
 
 def main_visu(arr_tot, name):
     """
-    TODO : comment
+    Shows an array of name 'name' when the time is an even number
+    @param arr_tot: array, has all the intermediate arrays for the times i
+    @param name: string
+    @return: figures
     """
     n = arr_tot.shape[2]
     for i in range(n):
@@ -23,7 +26,11 @@ def main_visu(arr_tot, name):
 
 def visu(arr, name, time):
     """
-    TODO : comment
+    Show the heatmap of an array, name and time appear in the title
+    @param arr: array, values for a given time 'time'
+    @param name: string, name of the value plotted
+    @param time: string, time of the visualisation
+    @return: figure
     """
     fig = plt.figure()
     plt.imshow(arr, cmap='jet')
@@ -40,13 +47,12 @@ def visu(arr, name, time):
 def visu_flow(U_flow, mesh, time):
     """
     To see ux, uy and p
-    :param time: time of the visualisation (string)
-    :param mesh: mesh
-    :param U_flow: Function
-    :return: None
+    :param time: string, time of the visualisation
+    :param mesh: dolfin mesh
+    :param U_flow: Dolfin Function
+    :return: figure
     """
     arr_ux, arr_uy, arr_p = array_exp_flow(U_flow, mesh)
-    nx = ny = int(np.sqrt(mesh.num_cells()))
     fig = plt.figure()
     plt.imshow(arr_ux, cmap='jet', extent=[0, 1, 0, 1])
     plt.xlabel('x')
@@ -82,7 +88,10 @@ def visu_flow(U_flow, mesh, time):
 
 def visu_phase(arr_phi, time):
     """
-    TODO : comment or delete ?
+    Shows the phase at time 'time' as a heatmap
+    @param arr_phi: array, values of phi for the time 'time'
+    @param time: string, time of the visualisation
+    @return: figure
     """
     fig = plt.figure()
     plt.imshow(arr_phi, cmap='jet')
@@ -99,7 +108,9 @@ def visu_phase(arr_phi, time):
 
 def see_all_phi(phi_tot):
     """
-    TODO : comment or delete ?
+    Show the phase as a heatmap when time is an even number
+    @param phi_tot: array, contains all the values of phi for all the intermediate times
+    @return: figure
     """
     n = phi_tot.shape[2]
     for i in range(n):
@@ -107,11 +118,15 @@ def see_all_phi(phi_tot):
             arr_phi = phi_tot[:, :, i]
             time = str(int(i))
             visu_phase(arr_phi, time)
+    return
 
 
 def interface(arr_phi):
     """
-    TODO : comment or delete ?
+    Find the interface from the phase (interface : phi=0)
+    TODO: To be improved, not very precise
+    @param arr_phi: array, values of phi for a given time
+    @return: array (should be 1 x ny but needs improvements)
     """
     n = len(arr_phi)
     interf = []
