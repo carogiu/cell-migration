@@ -1,6 +1,7 @@
 ### Packages
 import matplotlib.pyplot as plt
 import numpy as np
+from model.model_save_evolution import array_exp_flow
 
 
 ### Main functions
@@ -14,7 +15,7 @@ def main_visu(arr_tot, name):
     """
     n = arr_tot.shape[2]
     for i in range(n):
-        if i % 2 == 0:
+        if i % 1 == 0:
             arr = arr_tot[:, :, i]
             time = str(int(i))
             visu(arr, name, time)

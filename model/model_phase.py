@@ -15,8 +15,7 @@ class InitialConditions(UserExpression):  # result is a dolfin Expression
         super().__init__(**kwargs)
 
     def eval(self, values, x):
-        # values[0] = 0.63 + 0.02*(0.5 - random.random())
-        epsilon = .2
+        epsilon = .1
         if abs(x[0] - .5) < epsilon / 2:
             # random perturbation
             # values[0] = np.tanh(((x[0] - .5) * 2) / (epsilon * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)

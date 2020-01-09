@@ -70,6 +70,7 @@ def array_exp_phase(u, mesh):
     """
     From the function u, extracts the phase phi and the chemical potential mu and saves them as arrays
     :param u: Function of ME
+    :param mesh: dolfin mesh
     :return: array phi (nx x ny) and array mu (nx x ny) for easier plot
     """
     arr = u.compute_vertex_values(mesh)

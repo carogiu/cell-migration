@@ -18,7 +18,7 @@ def main_model(config):
     """
     Run complete model from global main parameters and observe results.
     """
-    #retrieve parameters
+    # retrieve parameters
     nx, ny = config.nx, config.ny
     n = config.n
     theta = config.theta
@@ -29,7 +29,7 @@ def main_model(config):
     dt = config.dt
     M = config.M
 
-    #Create Mesh
+    # Create Mesh
     mesh = mesh_from_dim(nx, ny)
     ME = space_phase(mesh)
     W_flow = space_flow(mesh)
@@ -41,9 +41,9 @@ def main_model(config):
 
     # Plots
     main_visu(phi_tot, 'Phase')
-    main_visu(vx_tot, 'Vx')
-    main_visu(vy_tot, 'Vy')
-    main_visu(p_tot, 'Pressure')
+    # main_visu(vx_tot, 'Vx')
+    # main_visu(vy_tot, 'Vy')
+    # main_visu(p_tot, 'Pressure')
 
     return
 

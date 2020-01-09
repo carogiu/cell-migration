@@ -6,11 +6,12 @@ from model.model_parameter_class import ModelParam
 config = ModelParam(
     nx=50,
     ny=50,
-    n=30,
-    theta=2,
-    epsilon=.2,
+    n=5,
+    theta=1,
+    epsilon=.1,
     lmbda=.01,
-    dt=5e-6,
+    #dt=5e-6,
+    dt=.01,
     M=1,
     vi="1",
     velocity=("10* sin(x[1]) + 5 * x[0] * x[0]", "0.0")
