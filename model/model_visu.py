@@ -1,8 +1,6 @@
 ### Packages
 import matplotlib.pyplot as plt
 import numpy as np
-from model.model_save_evolution import array_exp_flow
-
 
 ### Main functions
 
@@ -45,17 +43,15 @@ def visu(arr, name, time):
     return
 
 
-def visu_flow(U_flow, mesh, time, nx, ny):
+def visu_flow(arr_ux, arr_uy, arr_p, time,):
     """
     To see ux, uy and p
     :param time: string, time of the visualisation
-    :param mesh: dolfin mesh
-    :param U_flow: Dolfin Function
-    :param nx: int, grid dimension
-    :param ny: int, grid dimension
     :return: figure
+    :param arr_ux: array, values of vx for the time 'time'
+    :param arr_uy: array, values of vy for the time 'time'
+    :param arr_p: array, values of p for the time 'time'
     """
-    arr_ux, arr_uy, arr_p = array_exp_flow(U_flow, mesh, nx, ny)
     fig = plt.figure()
     plt.imshow(arr_ux, cmap='jet', extent=[0, 1, 0, 1])
     plt.xlabel('x')
