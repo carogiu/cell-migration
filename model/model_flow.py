@@ -56,7 +56,9 @@ def boundary_conditions_flow(W_flow, vi):
     bc1 = DirichletBC(W_flow.sub(0), inflow, left)
     pressure_out = Constant(0.0)
     bc2 = DirichletBC(W_flow.sub(1), pressure_out, right)
-    bcs = [bc0, bc1, bc2]
+    #bcs = [bc0, bc1, bc2]
+    # without the no slip condition
+    bcs = [bc1, bc2]
     return bcs
 
 
