@@ -34,7 +34,7 @@ def visu(arr, name, time):
     @return: figure
     """
     fig = plt.figure()
-    plt.imshow(arr, cmap='jet')
+    plt.imshow(arr, cmap='jet')#, extent=[-1, 1, 0, 2])
     plt.colorbar()
     plt.title(name + ' for t=' + time)
     plt.xlabel('x')

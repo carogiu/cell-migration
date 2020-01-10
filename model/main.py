@@ -59,9 +59,9 @@ def mesh_from_dim(nx, ny):
     :return: mesh
     """
     # Unit square mesh
-    mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
+    #mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
     # Square mesh of dimension 100x100
-    # mesh = dolfin.RectangleMesh(dolfin.Point(-50.0, 0.0), dolfin.Point(50.0, 100.0), nx, ny)
+    mesh = dolfin.RectangleMesh(dolfin.Point(0, 0), dolfin.Point(1, 1), nx, ny)
     return mesh
 
 
@@ -100,5 +100,6 @@ def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh
         U_flow = problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon)
         velocity, pressure = dolfin.split(U_flow)
         phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh, nx, ny)
+        print('Progress = ' + str(i+1)+'/'+str(n))
 
     return phi_tot, vx_tot, vy_tot, p_tot
