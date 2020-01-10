@@ -9,7 +9,6 @@ class ModelParam:
     """A configuration for the model.
 
     Attributes:
-                TODO : change names for clear ones (M ?)
 
     nx, ny : int, size of the mesh
     n : int, number of time steps
@@ -17,12 +16,12 @@ class ModelParam:
     epsilon : float, ratio between interface and length scale
     lmbda : float, parameter for the example model
     dt : float, size of a time step
-    M : float, energy factor
+    mob : float, energy factor (mobility of the fluid)
     vi : Expression, inflow velocity
     velocity : Expression, inflow velocity (if the inflow velocity is not a constant)
     """
 
-    def __init__(self, nx, ny, n, theta, epsilon, lmbda, dt, M, vi,
+    def __init__(self, nx, ny, n, theta, epsilon, lmbda, dt, mob, vi,
                  velocity=Expression(("10* sin(x[1]) + 5 * x[0] * x[0]", "0.0"), degree=2)):
         # geometry + rep
         self.nx = nx
@@ -36,7 +35,7 @@ class ModelParam:
         self.epsilon = Constant(epsilon) # !!! CHANGE EPSILON IN INITIAL CONDITION AS WELL
         self.lmbda = Constant(lmbda)
         self.dt = Constant(dt)
-        self.M = Constant(M)
+        self.mob = Constant(mob)
         self.vi = vi
         # test phase with a velocity
         self. velocity = Expression(velocity, degree=2)

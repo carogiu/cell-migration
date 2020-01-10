@@ -10,12 +10,13 @@ class InitialConditions(UserExpression):  # result is a dolfin Expression
     TODO: Needs to be improved, epsilon should be defined only outside of the function
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, epsilon, **kwargs):
         random.seed(2 + MPI.rank(MPI.comm_world))  # need to seed random number
+        self.epsilon = epsilon
         super().__init__(**kwargs)
 
     def eval(self, values, x):
-        epsilon = .1
+        epsilon = .05
         if abs(x[0] - .5) < epsilon / 2:
             # random perturbation
             # values[0] = np.tanh(((x[0] - .5) * 2) / (epsilon * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)
@@ -30,7 +31,7 @@ class InitialConditions(UserExpression):  # result is a dolfin Expression
         return (2,)  # dimension 2 (phi,mu)
 
 
-### Initialise Problem resulution
+### Initialise Problem resolution
 class CahnHilliardEquation(NonlinearProblem):
     """
     Creates the problem, initiates the residual vector and the Jacobian matrix
@@ -60,7 +61,7 @@ def space_phase(mesh):
     return ME
 
 
-def initiate_phase(ME):
+def initiate_phase(ME, epsilon):
     """
     Initiate the phase : from the function space, creates trial functions and test functions, and applies the
     initial conditions
@@ -73,7 +74,7 @@ def initiate_phase(ME):
     u = Function(ME)  # current solution u
     u0 = Function(ME)  # solution from previous converged step u0
 
-    u_init = InitialConditions(degree=1)
+    u_init = InitialConditions(degree=1, epsilon=epsilon)
     u.interpolate(u_init)
     u0.interpolate(u_init)
 
@@ -83,7 +84,7 @@ def initiate_phase(ME):
     return phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0
 
 
-def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, M, epsilon):
+def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob, epsilon):
     """
     Creates the variational problem
     @param phi_test: Test function
@@ -97,14 +98,14 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
     @param velocity: Expression, velocity of the flow for each point of the mesh
     @param mid: float, for the time discretization
     @param dt: float, time step
-    @param M: float, energy factor
+    @param mob: float, energy factor
     @param epsilon: float, length ratio
     @return: Functions
     """
     mu_mid = mu_calc(mid, mu, mu_0)
 
     L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(phi_0)) * dx + dt * (
-            M * epsilon ** 2) * dot(
+            mob * epsilon ** 2) * dot(
         grad(mu_mid), grad(phi_test)) * dx
     L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (epsilon ** 2) * dot(grad(phi), grad(mu_test)) * dx
     L = L0 + L1

@@ -27,7 +27,7 @@ def main_model(config):
     epsilon = config.epsilon
     mid = config.mid
     dt = config.dt
-    M = config.M
+    mob = config.mob
 
     # Create Mesh
     mesh = mesh_from_dim(nx, ny)
@@ -35,7 +35,7 @@ def main_model(config):
     W_flow = space_flow(mesh)
 
     # Compute the model
-    phi_tot, vx_tot, vy_tot, p_tot = time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh)
+    phi_tot, vx_tot, vy_tot, p_tot = time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny)
 
     # TODO : save the arrays as csv files in the future
 
@@ -58,11 +58,14 @@ def mesh_from_dim(nx, ny):
     :param ny: number of cells in y direction
     :return: mesh
     """
+    # Unit square mesh
     mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
+    # Square mesh of dimension 100x100
+    # mesh = dolfin.RectangleMesh(dolfin.Point(-50.0, 0.0), dolfin.Point(50.0, 100.0), nx, ny)
     return mesh
 
 
-def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh):
+def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny):
     """
 
     @param ME: Function space, for the phase
@@ -73,13 +76,14 @@ def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh):
     @param epsilon: float, length scale ratio
     @param mid: float, time discretization Crank Nicholson
     @param dt: float, time step
-    @param M: float, energy value
+    @param mob: float, energy value
     @param n: int, number of time steps
     @param mesh: dolfin mesh
+    @param nx: int, grid dimension
+    @param ny: int, grid dimension
     @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
-    nx = ny = int(np.sqrt(mesh.num_cells()))
-    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(ME)
+    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(ME, epsilon)
     U_flow = problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon)
     velocity, pressure = dolfin.split(U_flow)
     # save the solutions
@@ -87,14 +91,14 @@ def time_evolution(ME, W_flow, vi, theta, factor, epsilon, mid, dt, M, n, mesh):
     vx_tot = np.zeros((nx + 1, ny + 1, n))
     vy_tot = np.zeros((nx + 1, ny + 1, n))
     p_tot = np.zeros((nx + 1, ny + 1, n))
-    phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, 0, mesh)
+    phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, 0, mesh, nx, ny)
     for i in range(1, n):
-        a, L, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, M,
+        a, L, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
                                              epsilon)
         u0.vector()[:] = u.vector()
         u = solve_phase(a, L, u)
         U_flow = problem_coupled(W_flow, phi, mu, vi, theta, factor, epsilon)
         velocity, pressure = dolfin.split(U_flow)
-        phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh)
+        phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh, nx, ny)
 
     return phi_tot, vx_tot, vy_tot, p_tot
