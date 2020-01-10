@@ -16,15 +16,15 @@ class InitialConditions(UserExpression):  # result is a dolfin Expression
         super().__init__(**kwargs)
 
     def eval(self, values, x):
-        epsilon = .05
-        if abs(x[0]-.5) < epsilon / 2:
+        ep = float(self.epsilon)
+        if abs(x[0] - .5) < ep / 2:
             # random perturbation
-            # values[0] = np.tanh(((x[0] - .5) * 2) / (epsilon * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)
+            # values[0] = np.tanh(((x[0] - .5) * 2) / (ep * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)
             # sin perturbation
-            values[0] = np.tanh(((x[0]-.5)) / (epsilon * np.sqrt(2))) + np.sin(x[1] * 30) * 0.3
+            values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2))) + np.sin(x[1] * 30) * 0.3
 
         else:
-            values[0] = np.tanh(((x[0]-.5)) / (epsilon * np.sqrt(2)))
+            values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2)))
         values[1] = 0.0  # mu(0)
 
     def value_shape(self):
@@ -128,7 +128,7 @@ def solve_phase(a, L, u):
     solver.parameters["linear_solver"] = "lu"
     solver.parameters["convergence_criterion"] = "incremental"
     solver.parameters["relative_tolerance"] = 1e-6
-    solver.parameters["maximum_iterations"]  = 100
+    solver.parameters["maximum_iterations"] = 100
     solver.solve(problem, u.vector())
     return u
 
