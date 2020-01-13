@@ -40,8 +40,19 @@ def problem_coupled(w_flow, phi, mu, vi, theta, factor, epsilon):
         velocity) * dx
     L_flow = (factor / epsilon) * div(v_test) * phi * mu * dx
     u_flow = dolfin.Function(w_flow)
-    dolfin.solve(a_flow == L_flow, u_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
-                 form_compiler_parameters={"optimize": True})
+
+    problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs)
+    solver_flow = dolfin.LinearVariationalSolver(problem_flow)
+    solver_flow.parameters["linear_solver"] = "lu"
+    #solver_flow.parameters["preconditioner"] = "ilu"
+    prm_flow = solver_flow.parameters["krylov_solver"]  # short form
+    prm_flow["absolute_tolerance"] = 1E-7
+    prm_flow["relative_tolerance"] = 1E-4
+    prm_flow["maximum_iterations"] = 1000
+    solver_flow.solve()
+
+    # dolfin.solve(a_flow == L_flow, u_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
+    #             form_compiler_parameters={"optimize": True})
     return u_flow
 
 

@@ -1,5 +1,6 @@
 ### Packages
 import numpy as np
+import dolfin
 
 
 ### Main save
@@ -102,5 +103,4 @@ def array_exp_phase(u, mesh, nx, ny):
     arr_mu = arr[mid:n]
     arr_phi = np.reshape(arr_phi, (nx + 1, ny + 1))[::-1]
     arr_mu = np.reshape(arr_mu, (nx + 1, ny + 1))[::-1]
-
     return arr_phi, arr_mu

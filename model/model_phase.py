@@ -124,13 +124,16 @@ def solve_phase(a, L, u):
     @param u: Function
     @return: Function
     """
-    problem = CahnHilliardEquation(a, L)
-    solver = dolfin.NewtonSolver()
-    solver.parameters["linear_solver"] = "lu"
-    solver.parameters["convergence_criterion"] = "incremental"
-    solver.parameters["relative_tolerance"] = 1e-6
-    solver.parameters["maximum_iterations"] = 100
-    solver.solve(problem, u.vector())
+    problem_phase = CahnHilliardEquation(a, L)
+    solver_phase = dolfin.NewtonSolver()
+    solver_phase.parameters["linear_solver"] = "lu"
+    solver_phase.parameters["convergence_criterion"] = "incremental"
+    solver_phase.parameters["absolute_tolerance"] = 1e-7
+    solver_phase.parameters["relative_tolerance"] = 1e-4
+    solver_phase.parameters["maximum_iterations"] = 1000
+    dolfin.parameters["form_compiler"]["optimize"] = True
+    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
+    solver_phase.solve(problem_phase, u.vector())
     return u
 
 
