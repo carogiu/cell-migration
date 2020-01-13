@@ -41,6 +41,7 @@ def problem_coupled(w_flow, phi, mu, vi, theta, factor, epsilon):
     L_flow = (factor / epsilon) * div(v_test) * phi * mu * dx
     u_flow = dolfin.Function(w_flow)
 
+    # Solver
     problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs)
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
     solver_flow.parameters["linear_solver"] = "lu"
@@ -65,15 +66,13 @@ def boundary_conditions_flow(w_flow, vi):
     :return: array of boundary conditions
     """
     no_slip = dolfin.Constant((0.0, 0.0))
-    bc0 = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
+    bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
-    bc1 = dolfin.DirichletBC(w_flow.sub(0), inflow, left)
+    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, left)
+    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, right)
     pressure_out = dolfin.Constant(0.0)
-    bc2 = dolfin.DirichletBC(w_flow.sub(1), pressure_out, right)
-    # with the no-slip condition
-    # bcs = [bc0, bc1, bc2]
-    # without the no-slip condition
-    bcs = [bc1, bc2]
+    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, right)
+    bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
     return bcs
 
 

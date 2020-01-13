@@ -61,7 +61,7 @@ def mesh_from_dim(nx, ny):
     # Unit square mesh
     mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
     # Square mesh of dimension 100x100
-    # mesh = dolfin.RectangleMesh(dolfin.Point(0, 0), dolfin.Point(100, 100), nx, ny)
+    # mesh = dolfin.RectangleMesh(dolfin.Point(0, 0), dolfin.Point(5, 5), nx, ny)
     return mesh
 
 

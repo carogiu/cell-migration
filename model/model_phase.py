@@ -17,14 +17,14 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
 
     def eval(self, values, x):
         ep = float(self.epsilon)
-        if abs(x[0] - .5) < ep / 2:
+        if abs(x[0] - .2) < ep / 2:
             # random perturbation
-            # values[0] = np.tanh(((x[0] - .5) * 2) / (ep * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)
+            values[0] = np.tanh(((x[0] - .2) * 2) / (ep * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)
             # sin perturbation
-            values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2))) + np.sin(x[1] * 30) * 0.3
+            # values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2))) + np.sin(x[1] * 30) * 0.3
 
         else:
-            values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2)))
+            values[0] = np.tanh((x[0] - .2) / (ep * np.sqrt(2)))
         values[1] = 0.0  # mu(0)
 
     def value_shape(self):
