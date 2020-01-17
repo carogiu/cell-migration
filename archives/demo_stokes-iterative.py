@@ -162,7 +162,7 @@ mesh = mesh_from_dim(nx, ny)
 W_flow = space_flow(mesh)
 bcs = boundary_conditions_flow(W_flow)
 U = problem_no_div(W_flow, beta)
-#U = problem_stokes_flow(W_flow)
+#U = problem_stokes_flow(space_ME)
 
 #seeing
 visu(U)

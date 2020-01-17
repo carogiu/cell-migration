@@ -19,9 +19,10 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
         ep = float(self.epsilon)
         if abs(x[0]) < ep / 2:
             # random perturbation
-            values[0] = np.tanh(((x[0]) * 2) / (ep * np.sqrt(2))) + np.random.randn(1) * 0.05 # phi(0)
+            values[0] = np.tanh(((x[0]) * 2) / (ep * np.sqrt(2))) + np.random.randn(
+                1)  # phi(0) # +/- one cell on each side
             # sin perturbation
-            # values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2))) + np.sin(x[1] * 30) * 0.3
+            # values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2))) + np.sin(x[1] * 30)
 
         else:
             values[0] = np.tanh((x[0]) / (ep * np.sqrt(2)))
@@ -109,14 +110,14 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
             mob * epsilon ** 2) * dot(
         grad(mu_mid), grad(phi_test)) * dx
     L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (epsilon ** 2) * dot(grad(phi), grad(mu_test)) * dx
-    L = L0 + L1
+    F = L0 + L1
 
-    a = dolfin.derivative(L, u, du)
+    J = dolfin.derivative(F, u, du)
 
-    return a, L, u
+    return F, J, u
 
 
-def solve_phase(a, L, u):
+def solve_phase(F, J, u, space_ME, dim_x, dim_y):
     """
     Solves the variational problem
     @param a: Function
@@ -124,17 +125,89 @@ def solve_phase(a, L, u):
     @param u: Function
     @return: Function
     """
-    problem_phase = CahnHilliardEquation(a, L)
-    solver_phase = dolfin.NewtonSolver()
+    bcs = boundary_conditions_flow(space_ME, dim_x, dim_y)
+    # problem_phase = CahnHilliardEquation(a, L)
+    # solver_phase = dolfin.NewtonSolver()
+    problem_phase = dolfin.NonlinearVariationalProblem(F, u, bcs, J)
+    solver_phase = dolfin.NonlinearVariationalSolver(problem_phase)
+    prm = solver_phase.parameters
+    prm["newton_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["maximum_iterations"] = 100
+    prm["newton_solver"]["relaxation_parameter"] = 1.0
+    """
     solver_phase.parameters["linear_solver"] = "lu"
     solver_phase.parameters["convergence_criterion"] = "incremental"
     solver_phase.parameters["absolute_tolerance"] = 1e-7
     solver_phase.parameters["relative_tolerance"] = 1e-4
     solver_phase.parameters["maximum_iterations"] = 1000
+    """
     dolfin.parameters["form_compiler"]["optimize"] = True
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
-    solver_phase.solve(problem_phase, u.vector())
+    # solver_phase.solve(problem_phase, u.vector())
+    solver_phase.solve()
     return u
+
+
+### BOUNDARIES### CREATE BOUNDARIES
+def boundary_conditions_flow(space_ME, dim_x, dim_y):
+    """
+    Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
+    :param space_ME: Function space
+    :param vi: Expression, velocity inflow
+    :return: array of boundary conditions
+    """
+    dom_left = BD_left(dim_x)
+    dom_right = BD_right(dim_x)
+    bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), dom_left)
+    bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), dom_right)
+    bcs = [bc_phi_left, bc_phi_right]
+
+    return bcs
+
+
+### BOUNDARIES : tells were the boundaries are
+
+class BD_right(dolfin.SubDomain):
+    """
+    :param dim_x: dimension in the direction of x
+    """
+
+    def __init__(self, dim_x, **kwargs):
+        self.dim_x = dim_x
+        super().__init__(**kwargs)
+
+    def inside(self, x, on_boundary):
+        d_x = self.dim_x
+        return x[0] > (d_x / 2 - dolfin.DOLFIN_EPS)
+
+
+class BD_left(dolfin.SubDomain):
+    """
+    :param dim_x: dimension in the direction of x
+    """
+
+    def __init__(self, dim_x, **kwargs):
+        self.dim_x = dim_x
+        super().__init__(**kwargs)
+
+    def inside(self, x, on_boundary):
+        d_x = self.dim_x
+        return x[0] < - d_x / 2 + dolfin.DOLFIN_EPS
+
+
+class BD_top_bottom(dolfin.SubDomain):
+    """
+    :param dim_y: dimension in the direction of y
+    """
+
+    def __init__(self, dim_y, **kwargs):
+        self.dim_y = dim_y
+        super().__init__(**kwargs)
+
+    def inside(self, x, on_boundary):
+        d_y = self.dim_y
+        return x[1] > d_y - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
 
 
 ### Utilitarian functions
