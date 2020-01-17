@@ -1,7 +1,7 @@
 ### Packages
 # from dolfin import *
 import dolfin
-from ufl import dx, dot, div, inner, grad
+from ufl import dot, div, inner, grad, ds, dx
 
 
 ### Main functions
@@ -20,9 +20,11 @@ def space_flow(mesh):
     return w_flow
 
 
-def problem_coupled(w_flow, phi, mu, vi, theta, factor, epsilon):
+def problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon):
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
+    @param dim_x: dimension in the direction of x
+    @param mesh: mesh
     @param w_flow: Function space
     @param phi: Function, phase
     @param mu: Function, chemical potential
@@ -30,15 +32,16 @@ def problem_coupled(w_flow, phi, mu, vi, theta, factor, epsilon):
     @param theta: float, friction ratio
     @param factor: float, numerical factor
     @param epsilon: float, length scale ratio
-    @return:
+    @return: solution
     """
     bcs = boundary_conditions_flow(w_flow, vi)
     theta_p = theta_phi(theta, phi)
+    normal = dolfin.FacetNormal(mesh)
+    v_i = dolfin.Expression(("x[0]==-dim_x/2 ? vi : 0", "0"), degree=1, dim_x = dim_x, vi = vi)
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
-    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx + p_test * div(
-        velocity) * dx
-    L_flow = (factor / epsilon) * div(v_test) * phi * mu * dx
+    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) + p_test*dot(v_i,normal)*ds
+    L_flow = -factor * epsilon * phi * dot(v_test, grad(mu)) * dx
     u_flow = dolfin.Function(w_flow)
 
     # Solver
@@ -65,48 +68,52 @@ def boundary_conditions_flow(w_flow, vi):
     :param vi: Expression, velocity inflow
     :return: array of boundary conditions
     """
-    no_slip = dolfin.Constant((0.0, 0.0))
-    bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
+    #no_slip = dolfin.Constant((0.0, 0.0))
+    #bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
     bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, left)
-    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, right)
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, right)
-    bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
+    #bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
+    bcs = [bc_v_left, bc_p_right]
+
     return bcs
 
 
 ### UTILITARIAN FUNCTIONS
 
 ### BOUNDARIES : tells were the boundaries are (square)
-def right(x, on_boundary):
+def right(x, dim_x, on_boundary):
     """
     Return TRUE if x is in the right boundary
     @param x: array
+    @param dim_x: int, dimension int the x direction
     @param on_boundary: dolfin parameter
     @return: boolean
     """
-    return x[0] > (1.0 - dolfin.DOLFIN_EPS)
+    return x[0] > (dim_x/2 - dolfin.DOLFIN_EPS)
 
 
-def left(x, on_boundary):
+def left(x, dim_x, on_boundary):
     """
     Return TRUE if x is in the left boundary
     @param x: array
+    @param dim_x: int, dimension int the x direction
     @param on_boundary: dolfin parameter
     @return: boolean
     """
-    return x[0] < dolfin.DOLFIN_EPS
+    return x[0] < -dim_x/2 + dolfin.DOLFIN_EPS
 
 
-def top_bottom(x, on_boundary):
+def top_bottom(x, dim_y, on_boundary):
     """
     Retrun TRUE if y is on the top or the bottom boundary
     @param x: array
+    @param dim_y: int, dimension int the y direction
     @param on_boundary: dolfin parameter
     @return: boolean
     """
-    return x[1] > 1.0 - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
+    return x[1] > dim_y - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
 
 
 ### Transformation
