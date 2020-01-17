@@ -86,7 +86,7 @@ def initiate_phase(space_ME, epsilon):
     return phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0
 
 
-def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob, epsilon):
+def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob, epsilon, factor):
     """
     Creates the variational problem
     @param phi_test: Test function
@@ -106,10 +106,9 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
     """
     mu_mid = mu_calc(mid, mu, mu_0)
 
-    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(phi_0)) * dx + dt * (
-            mob * epsilon ** 2) * dot(
+    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(phi_0)) * dx + dt * factor * epsilon * mob * dot(
         grad(mu_mid), grad(phi_test)) * dx
-    L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (epsilon ** 2) * dot(grad(phi), grad(mu_test)) * dx
+    L1 = mu * mu_test * dx - (phi ** 3 - phi)*(1/epsilon**2) * mu_test * dx - dot(grad(phi), grad(mu_test)) * dx
     F = L0 + L1
 
     J = dolfin.derivative(F, u, du)
