@@ -19,10 +19,11 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
         ep = float(self.epsilon)
         if abs(x[0]) < ep / 2:
             # random perturbation
-            values[0] = np.tanh(((x[0]) * 2) / (ep * np.sqrt(2))) + np.random.randn(
-                1)  # phi(0) # +/- one cell on each side
+            dx = np.random.randn(1)*ep
             # sin perturbation
-            # values[0] = np.tanh((x[0] - .5) / (ep * np.sqrt(2))) + np.sin(x[1] * 30)
+            #dx = np.sin(x[1] * 30)*ep
+            values[0] = np.tanh(((x[0]+ dx) * 2) / (ep * np.sqrt(2))) # phi(0) # +/- one cell on each side
+
 
         else:
             values[0] = np.tanh((x[0]) / (ep * np.sqrt(2)))
