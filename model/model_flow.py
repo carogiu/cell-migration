@@ -37,9 +37,8 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     bcs = boundary_conditions_flow(w_flow, vi, dim_x, dim_y)
     theta_p = theta_phi(theta, phi)
     normal = dolfin.FacetNormal(mesh)
-    tol = dolfin.DOLFIN_EPS
-    id_in = dolfin.Expression("x[0] < - (dim_x / 2 + tol ? 1) : 0", degree=1,
-                              dim_x=dim_x, tol=tol)  # =1 in the inflow on the left, 0 otherwise
+    id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
+                              dim_x=dim_x, tol=dolfin.DOLFIN_EPS)  # = 1 in the inflow on the left, 0 otherwise
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
     a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) * dx + (

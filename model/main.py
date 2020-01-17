@@ -4,7 +4,7 @@ import numpy as np
 
 from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
-from model.model_save_evolution import main_save
+from model.model_save_evolution import main_save, save_phi
 from model.model_visu import main_visu
 
 ### Constants
@@ -42,9 +42,9 @@ def main_model(config):
 
     # Plots
     main_visu(phi_tot, 'Phase', dim_x, dim_y)
-    # main_visu(vx_tot, 'Vx', dim_x, dim_y)
+    main_visu(vx_tot, 'Vx', dim_x, dim_y)
     # main_visu(vy_tot, 'Vy', dim_x, dim_y)
-    # main_visu(p_tot, 'Pressure', dim_x, dim_y)
+    main_visu(p_tot, 'Pressure', dim_x, dim_y)
 
     return
 
@@ -89,14 +89,17 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     @param dim_x: int, dimension in the direction of x
     """
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
-    u_flow = problem_coupled(mesh, dim_x,dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
-    velocity, pressure = dolfin.split(u_flow)
+    #u_flow = problem_coupled(mesh, dim_x,dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
+    velocity = dolfin.Expression((vi,"0.0"), degree=2)
+    pressure = dolfin.Expression("1-x[0]", degree=1)
+    #velocity, pressure = dolfin.split(u_flow)
     # save the solutions
     phi_tot = np.zeros((nx + 1, ny + 1, n))
     vx_tot = np.zeros((nx + 1, ny + 1, n))
     vy_tot = np.zeros((nx + 1, ny + 1, n))
     p_tot = np.zeros((nx + 1, ny + 1, n))
-    phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, 0, mesh, nx, ny)
+    #phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, 0, mesh, nx, ny)
+    phi_tot, vx_tot, vy_tot, p_tot = interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, 0, mesh, nx, ny)
     for i in range(1, n):
         F, J, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
                                              epsilon, factor)
@@ -106,5 +109,33 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
         velocity, pressure = dolfin.split(u_flow)
         phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, i, mesh, nx, ny)
         print('Progress = ' + str(i+1)+'/'+str(n))
+
+    return phi_tot, vx_tot, vy_tot, p_tot
+
+def interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, i, mesh, nx, ny):
+    """
+    For a time i, extracts ux, uy, p from U_flow and the phase from u and saves them at the position i in the
+    corresponding arrays
+    @param phi_tot: array, contains all the values of phi for all the intermediate times
+    @param vx_tot: array, contains all the values of vx for all the intermediate times
+    @param vy_tot: array, contains all the values of vy for all the intermediate times
+    @param p_tot: array, contains all the values of p for all the intermediate times
+    @param u: dolfin Function
+    @param U_flow: dolfin Function
+    @param i: int, number of the time step
+    @param mesh: dolfin mesh
+    @param nx: int, grid dimension
+    @param ny: int, grid dimension
+    @return: arrays
+    """
+    phi_tot = save_phi(phi_tot, u, i, mesh, nx, ny)
+    arr_p = pressure.compute_vertex_values(mesh).reshape(nx + 1, ny + 1)
+    arr_u = velocity.compute_vertex_values(mesh)
+    arr_u = np.reshape(arr_u, (2, nx + 1, ny + 1))
+    arr_ux = arr_u[0][::-1]
+    arr_uy = arr_u[1][::-1]
+    vx_tot[:, :, i] = arr_ux
+    vy_tot[:, :, i] = arr_uy
+    p_tot[:, :, i] = arr_p
 
     return phi_tot, vx_tot, vy_tot, p_tot
