@@ -28,7 +28,7 @@ class ModelParam:
         self.ny = ny
         self.n = n
         self.dim_x = dim_x
-        self.dim_y = dim_y,
+        self.dim_y = dim_y
         # dimensionless parameters DON'T CHANGE
         self.factor = Constant(3 / (2 * np.sqrt(2)))
         self.mid = Constant(0.5)

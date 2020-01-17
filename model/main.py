@@ -36,15 +36,15 @@ def main_model(config):
     w_flow = space_flow(mesh)
 
     # Compute the model
-    phi_tot, vx_tot, vy_tot, p_tot = time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny)
+    phi_tot, vx_tot, vy_tot, p_tot = time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny, dim_x, dim_y)
 
     # TODO : save the arrays as csv files in the future
 
     # Plots
-    main_visu(phi_tot, 'Phase')
-    # main_visu(vx_tot, 'Vx')
-    # main_visu(vy_tot, 'Vy')
-    # main_visu(p_tot, 'Pressure')
+    main_visu(phi_tot, 'Phase', dim_x, dim_y)
+    # main_visu(vx_tot, 'Vx', dim_x, dim_y)
+    # main_visu(vy_tot, 'Vy', dim_x, dim_y)
+    # main_visu(p_tot, 'Pressure', dim_x, dim_y)
 
     return
 
@@ -64,7 +64,7 @@ def mesh_from_dim(nx, ny, dim_x, dim_y):
     # Unit square mesh
     #mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
     # Square mesh of dimension 100x100
-    mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x/2, 0), dolfin.Point(dim_x/2, dim_y), nx, ny)
+    mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x/2, 0.0), dolfin.Point(dim_x/2, dim_y), nx, ny)
     return mesh
 
 
@@ -89,7 +89,7 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     @param dim_x: int, dimension in the direction of x
     """
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
-    u_flow = problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon)
+    u_flow = problem_coupled(mesh, dim_x,dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
     velocity, pressure = dolfin.split(u_flow)
     # save the solutions
     phi_tot = np.zeros((nx + 1, ny + 1, n))
@@ -102,7 +102,7 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
                                              epsilon)
         u0.vector()[:] = u.vector()
         u = solve_phase(a, L, u)
-        u_flow = problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon)
+        u_flow = problem_coupled(mesh, dim_x,dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
         velocity, pressure = dolfin.split(u_flow)
         phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, i, mesh, nx, ny)
         print('Progress = ' + str(i+1)+'/'+str(n))
