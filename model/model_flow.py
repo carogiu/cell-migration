@@ -20,7 +20,7 @@ def space_flow(mesh):
     return w_flow
 
 
-def problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon):
+def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsilon):
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
     @param dim_x: dimension in the direction of x
@@ -34,13 +34,15 @@ def problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon):
     @param epsilon: float, length scale ratio
     @return: solution
     """
-    bcs = boundary_conditions_flow(w_flow, vi)
+    bcs = boundary_conditions_flow(w_flow, vi, dim_x, dim_y)
     theta_p = theta_phi(theta, phi)
     normal = dolfin.FacetNormal(mesh)
-    v_i = dolfin.Expression(("x[0]==-dim_x/2 ? vi : 0", "0"), degree=1, dim_x = dim_x, vi = vi)
+    id_in = dolfin.Expression("x[0]== - dim_x/2 ? 1 : 0", degree=1,
+                              dim_x=dim_x)  # =1 in the inflow on the left, 0 otherwise
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
-    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) + p_test*dot(v_i,normal)*ds
+    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) * dx + (
+                id_in * p_test * dot(velocity, normal)) * ds
     L_flow = -factor * epsilon * phi * dot(v_test, grad(mu)) * dx
     u_flow = dolfin.Function(w_flow)
 
@@ -48,7 +50,7 @@ def problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon):
     problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs)
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
     solver_flow.parameters["linear_solver"] = "lu"
-    #solver_flow.parameters["preconditioner"] = "ilu"
+    # solver_flow.parameters["preconditioner"] = "ilu"
     prm_flow = solver_flow.parameters["krylov_solver"]  # short form
     prm_flow["absolute_tolerance"] = 1E-7
     prm_flow["relative_tolerance"] = 1E-4
@@ -61,20 +63,22 @@ def problem_coupled(mesh, dim_x, w_flow, phi, mu, vi, theta, factor, epsilon):
 
 
 ### CREATE BOUNDARIES
-def boundary_conditions_flow(w_flow, vi):
+def boundary_conditions_flow(w_flow, vi, dim_x, dim_y):
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
     :param w_flow: Function space
     :param vi: Expression, velocity inflow
     :return: array of boundary conditions
     """
-    #no_slip = dolfin.Constant((0.0, 0.0))
-    #bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
+    # no_slip = dolfin.Constant((0.0, 0.0))
+    # bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
+    dom_left = BD_left(dim_x)
+    dom_right = BD_right(dim_x)
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
-    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, left)
+    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, dom_left)
     pressure_out = dolfin.Constant(0.0)
-    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, right)
-    #bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
+    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, dom_right)
+    # bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
     bcs = [bc_v_left, bc_p_right]
 
     return bcs
@@ -83,37 +87,47 @@ def boundary_conditions_flow(w_flow, vi):
 ### UTILITARIAN FUNCTIONS
 
 ### BOUNDARIES : tells were the boundaries are (square)
-def right(x, dim_x, on_boundary):
+
+class BD_right(dolfin.SubDomain):
     """
-    Return TRUE if x is in the right boundary
-    @param x: array
-    @param dim_x: int, dimension int the x direction
-    @param on_boundary: dolfin parameter
-    @return: boolean
+    :param dim_x: dimension in the direction of x
     """
-    return x[0] > (dim_x/2 - dolfin.DOLFIN_EPS)
+
+    def __init__(self, dim_x, **kwargs):
+        self.dim_x = dim_x
+        super().__init__(**kwargs)
+
+    def inside(self, x, on_boundary):
+        d_x = self.dim_x
+        return x[0] > (d_x / 2 - dolfin.DOLFIN_EPS)
 
 
-def left(x, dim_x, on_boundary):
+class BD_left(dolfin.SubDomain):
     """
-    Return TRUE if x is in the left boundary
-    @param x: array
-    @param dim_x: int, dimension int the x direction
-    @param on_boundary: dolfin parameter
-    @return: boolean
+    :param dim_x: dimension in the direction of x
     """
-    return x[0] < -dim_x/2 + dolfin.DOLFIN_EPS
+
+    def __init__(self, dim_x, **kwargs):
+        self.dim_x = dim_x
+        super().__init__(**kwargs)
+
+    def inside(self, x, on_boundary):
+        d_x = self.dim_x
+        return x[0] < - d_x / 2 + dolfin.DOLFIN_EPS
 
 
-def top_bottom(x, dim_y, on_boundary):
+class BD_top_bottom(dolfin.SubDomain):
     """
-    Retrun TRUE if y is on the top or the bottom boundary
-    @param x: array
-    @param dim_y: int, dimension int the y direction
-    @param on_boundary: dolfin parameter
-    @return: boolean
+    :param dim_y: dimension in the direction of y
     """
-    return x[1] > dim_y - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
+
+    def __init__(self, dim_y, **kwargs):
+        self.dim_y = dim_y
+        super().__init__(**kwargs)
+
+    def inside(self, x, on_boundary):
+        d_y = self.dim_y
+        return x[1] > d_y - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
 
 
 ### Transformation
@@ -168,3 +182,18 @@ def flow_static_phase_no_mu(w_flow, vi, phi, theta):  # THIS IS WORKING
     dolfin.solve(a_flow == L_flow, u_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
                  form_compiler_parameters={"optimize": True})
     return u_flow
+
+
+"""
+
+def right(x):
+    return x[0] > ( 1.0 - dolfin.DOLFIN_EPS)
+
+
+def left(x):
+    return x[0] < dolfin.DOLFIN_EPS
+
+
+def top_bottom(x):
+    return x[1] > 1.0 - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS 
+"""
