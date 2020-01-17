@@ -2,9 +2,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 ### Main functions
 
-def main_visu(arr_tot, name):
+def main_visu(arr_tot, name, dim_x, dim_y):
     """
     Shows an array of name 'name' for all the times
     @param arr_tot: array, has all the intermediate arrays for the times i
@@ -16,14 +17,14 @@ def main_visu(arr_tot, name):
         if i % 1 == 0:
             arr = arr_tot[:, :, i]
             time = str(int(i))
-            visu(arr, name, time)
+            visu(arr, name, time, dim_x, dim_y)
 
     return
 
 
 ### Base functions
 
-def visu(arr, name, time):
+def visu(arr, name, time, dim_x, dim_y):
     """
     Show the heatmap of an array, name and time appear in the title
     @param arr: array, values for a given time 'time'
@@ -32,7 +33,7 @@ def visu(arr, name, time):
     @return: figure
     """
     fig = plt.figure()
-    plt.imshow(arr, cmap='jet')#, extent=[-1, 1, 0, 2])
+    plt.imshow(arr, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y])
     plt.colorbar()
     plt.title(name + ' for t=' + time)
     plt.xlabel('x')
@@ -43,7 +44,7 @@ def visu(arr, name, time):
     return
 
 
-def visu_flow(arr_ux, arr_uy, arr_p, time,):
+def visu_flow(arr_ux, arr_uy, arr_p, time, ):
     """
     To see ux, uy and p
     :param time: string, time of the visualisation
