@@ -42,9 +42,9 @@ def main_model(config):
 
     # Plots
     main_visu(phi_tot, 'Phase', dim_x, dim_y)
-    main_visu(vx_tot, 'Vx', dim_x, dim_y)
+    # main_visu(vx_tot, 'Vx', dim_x, dim_y)
     # main_visu(vy_tot, 'Vy', dim_x, dim_y)
-    main_visu(p_tot, 'Pressure', dim_x, dim_y)
+    # main_visu(p_tot, 'Pressure', dim_x, dim_y)
 
     return
 

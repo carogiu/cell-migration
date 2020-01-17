@@ -76,10 +76,11 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y):
     dom_right = BD_right(dim_x)
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
     bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, dom_left)
+    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, dom_right)
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, dom_right)
     # bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
-    bcs = [bc_v_left, bc_p_right]
+    bcs = [bc_v_left, bc_p_right, bc_v_right]
 
     return bcs
 

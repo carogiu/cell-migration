@@ -133,7 +133,7 @@ def solve_phase(F, J, u, space_ME, dim_x, dim_y):
     prm = solver_phase.parameters
     prm["newton_solver"]["absolute_tolerance"] = 1E-7
     prm["newton_solver"]["relative_tolerance"] = 1E-4
-    prm["newton_solver"]["maximum_iterations"] = 100
+    prm["newton_solver"]["maximum_iterations"] = 500
     prm["newton_solver"]["relaxation_parameter"] = 1.0
     """
     solver_phase.parameters["linear_solver"] = "lu"
@@ -194,20 +194,6 @@ class BD_left(dolfin.SubDomain):
     def inside(self, x, on_boundary):
         d_x = self.dim_x
         return x[0] < - d_x / 2 + dolfin.DOLFIN_EPS
-
-
-class BD_top_bottom(dolfin.SubDomain):
-    """
-    :param dim_y: dimension in the direction of y
-    """
-
-    def __init__(self, dim_y, **kwargs):
-        self.dim_y = dim_y
-        super().__init__(**kwargs)
-
-    def inside(self, x, on_boundary):
-        d_y = self.dim_y
-        return x[1] > d_y - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
 
 
 ### Utilitarian functions
