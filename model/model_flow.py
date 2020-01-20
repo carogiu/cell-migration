@@ -4,7 +4,6 @@ from ufl import dot, div, inner, grad, dx, ds
 from model.model_common_functions import BD_left, BD_top_bottom, BD_right
 
 
-
 ### Main functions
 def space_flow(mesh):
     """
@@ -24,8 +23,9 @@ def space_flow(mesh):
 def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsilon):
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
-    @param dim_x: dimension in the direction of x
     @param mesh: mesh
+    @param dim_x: dimension in the direction of x
+    @param dim_y: dimension in the direction of y
     @param w_flow: Function space
     @param phi: Function, phase
     @param mu: Function, chemical potential
@@ -35,16 +35,21 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     @param epsilon: float, length scale ratio
     @return: solution
     """
+    # boundary conditions
     bcs_flow = boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh)
+    # continuous viscosity
     theta_p = theta_phi(theta, phi)
+    # inflow condition for ds
     v_i = dolfin.Expression(vi, degree=1)
     id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
                               dim_x=dim_x, tol=1E-12)  # = 1 in the inflow on the left, 0 otherwise
+
+    # Problem
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
     a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) * dx
     L_flow = -factor * epsilon * phi * dot(v_test, grad(mu)) * dx + (id_in * p_test * v_i) * ds
-    #L_flow = dot(dolfin.Constant((0.0,0.0)),v_test) * dx  # If want to try without the coupling
+    # L_flow = dot(dolfin.Constant((0.0,0.0)),v_test) * dx  # If want to try without the coupling
     u_flow = dolfin.Function(w_flow)
 
     # Solver
@@ -64,11 +69,14 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
 
 
 ### CREATE BOUNDARIES
-def boundary_conditions_flow(w_flow, vi, dim_x, dim_y,mesh):
+def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
     :param w_flow: Function space
     :param vi: Expression, velocity inflow
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param mesh: mesh
     :return: array of boundary conditions
     """
     # define the subdomains of the boundaries

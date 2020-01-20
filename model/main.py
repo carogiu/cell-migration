@@ -85,9 +85,9 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     @param mesh: dolfin mesh
     @param nx: int, grid dimension
     @param ny: int, grid dimension
-    @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     @param dim_y: int, dimension in the direction of y
     @param dim_x: int, dimension in the direction of x
+    @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
     # u_flow = problem_coupled(mesh, dim_x,dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
@@ -123,7 +123,8 @@ def interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, i, mesh, 
     @param vy_tot: array, contains all the values of vy for all the intermediate times
     @param p_tot: array, contains all the values of p for all the intermediate times
     @param u: dolfin Function
-    @param U_flow: dolfin Function
+    @param pressure: dolfin Function
+    @param velocity: dolfin Function
     @param i: int, number of the time step
     @param mesh: dolfin mesh
     @param nx: int, grid dimension
@@ -141,6 +142,3 @@ def interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, i, mesh, 
     p_tot[:, :, i] = arr_p
 
     return phi_tot, vx_tot, vy_tot, p_tot
-
-
-

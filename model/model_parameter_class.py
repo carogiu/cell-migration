@@ -21,23 +21,21 @@ class ModelParam:
     velocity : Expression, inflow velocity (if the inflow velocity is not a constant)
     """
 
-    def __init__(self, nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi,
-                 velocity=Expression(("10* sin(x[1]) + 5 * x[0] * x[0]", "0.0"), degree=2)):
+    def __init__(self, nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi):
         # geometry + rep
         self.nx = nx
         self.ny = ny
         self.n = n
         self.dim_x = dim_x
         self.dim_y = dim_y
+
         # dimensionless parameters DON'T CHANGE
         self.factor = Constant(3 / (2 * np.sqrt(2)))
         self.mid = Constant(0.5)
+
         # dimensionless parameters (can change)
         self.theta = Constant(theta)
         self.epsilon = Constant(epsilon)
         self.dt = Constant(dt)
         self.mob = Constant(mob)
         self.vi = vi
-        # test phase with a velocity
-        self. velocity = Expression(velocity, degree=2)
-

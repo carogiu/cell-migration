@@ -2,7 +2,7 @@ import random
 import dolfin
 import numpy as np
 from ufl import dx, dot, grad
-from model.model_common_functions import BD_left, BD_top_bottom, BD_right
+from model.model_common_functions import BD_left, BD_right
 
 
 ### Initialise the phase
@@ -20,10 +20,10 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
         ep = float(self.epsilon)
         if abs(x[0]) < ep / 2:
             # random perturbation
-            dx = np.random.randn(1)*ep
+            dx = np.random.randn(1) * ep
             # sin perturbation
             # dx = np.sin(x[1] * 30) * ep
-            values[0] = np.tanh(((x[0] + dx) * 2) / (ep * np.sqrt(2)))  # phi(0) # +/- one cell on each side
+            values[0] = np.tanh(((x[0] + dx) * 2) / (ep * np.sqrt(2)))  # phi(0)
 
 
         else:
@@ -104,6 +104,7 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
     @param dt: float, time step
     @param mob: float, energy factor
     @param epsilon: float, length ratio
+    @param factor: float, numerical factor 3/2sqrt(2)
     @return: Functions
     """
     mu_mid = mu_calc(mid, mu, mu_0)
@@ -122,16 +123,25 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
 def solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh):
     """
     Solves the variational problem
-    @param a: Function
-    @param L: Function
+    @param F: Function
+    @param J: Function
     @param u: Function
     @return: Function
+    @param space_ME: function space
+    @param dim_x: dimension in the direction of x
+    @param dim_y: dimension in the direction of y
+    @param mesh: mesh
     """
+    # boundaryes
     bcs_phase = boundary_conditions_flow(space_ME, dim_x, dim_y, mesh)
     # problem_phase = CahnHilliardEquation(a, L)
     # solver_phase = dolfin.NewtonSolver()
+
+    # Problem
     problem_phase = dolfin.NonlinearVariationalProblem(F, u, bcs_phase, J)
     solver_phase = dolfin.NonlinearVariationalSolver(problem_phase)
+
+    # Solver
     prm = solver_phase.parameters
     prm["newton_solver"]["absolute_tolerance"] = 1E-7
     prm["newton_solver"]["relative_tolerance"] = 1E-4
@@ -146,17 +156,17 @@ def solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh):
     """
     dolfin.parameters["form_compiler"]["optimize"] = True
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
-    # solver_phase.solve(problem_phase, u.vector())
     solver_phase.solve()
     return u
 
 
 ### BOUNDARIES### CREATE BOUNDARIES
-def boundary_conditions_flow(space_ME, dim_x, dim_y, mesh):
+def boundary_conditions_flow(space_ME, dim_x, mesh):
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
     :param space_ME: Function space
-    :param vi: Expression, velocity inflow
+    :param dim_x: dimensions in the direction of x
+    :param mesh: mesh
     :return: array of boundary conditions
     """
     dom_left = BD_left(dim_x)
@@ -183,6 +193,8 @@ def mu_calc(mid, mu, mu_0):
     """
     return (1.0 - mid) * mu_0 + mid * mu
 
+
+### NOT USED ANYMORE
 
 def potential(phi):
     """
