@@ -1,7 +1,8 @@
 ### Packages
-# from dolfin import *
 import dolfin
-from ufl import dot, div, inner, grad, ds, dx
+from ufl import dot, div, inner, grad, dx, ds
+from model.model_common_functions import BD_left, BD_top_bottom, BD_right
+
 
 
 ### Main functions
@@ -34,23 +35,23 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     @param epsilon: float, length scale ratio
     @return: solution
     """
-    bcs = boundary_conditions_flow(w_flow, vi, dim_x, dim_y)
+    bcs_flow = boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh)
     theta_p = theta_phi(theta, phi)
-    normal = dolfin.FacetNormal(mesh)
+    v_i = dolfin.Expression(vi, degree=1)
     id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
-                              dim_x=dim_x, tol=dolfin.DOLFIN_EPS)  # = 1 in the inflow on the left, 0 otherwise
+                              dim_x=dim_x, tol=1E-12)  # = 1 in the inflow on the left, 0 otherwise
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
-    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) * dx + (
-                id_in * p_test * dot(velocity, normal)) * ds
-    L_flow = -factor * epsilon * phi * dot(v_test, grad(mu)) * dx
+    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test), velocity) * dx
+    L_flow = -factor * epsilon * phi * dot(v_test, grad(mu)) * dx + (id_in * p_test * v_i) * ds
+    #L_flow = dot(dolfin.Constant((0.0,0.0)),v_test) * dx  # If want to try without the coupling
     u_flow = dolfin.Function(w_flow)
 
     # Solver
-    problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs)
+    problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs_flow)
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
     solver_flow.parameters["linear_solver"] = "lu"
-    # solver_flow.parameters["preconditioner"] = "ilu"
+    solver_flow.parameters["preconditioner"] = "ilu"
     prm_flow = solver_flow.parameters["krylov_solver"]  # short form
     prm_flow["absolute_tolerance"] = 1E-7
     prm_flow["relative_tolerance"] = 1E-4
@@ -63,72 +64,39 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
 
 
 ### CREATE BOUNDARIES
-def boundary_conditions_flow(w_flow, vi, dim_x, dim_y):
+def boundary_conditions_flow(w_flow, vi, dim_x, dim_y,mesh):
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
     :param w_flow: Function space
     :param vi: Expression, velocity inflow
     :return: array of boundary conditions
     """
-    # no_slip = dolfin.Constant((0.0, 0.0))
-    # bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, top_bottom)
+    # define the subdomains of the boundaries
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
+    dom_tb = BD_top_bottom(dim_y)
+    boundaries = dolfin.MeshFunction("size_t", mesh, 1)
+    boundaries.set_all(0)
+    dom_left.mark(boundaries, 1)
+    dom_right.mark(boundaries, 2)
+    dom_tb.mark(boundaries, 3)
+    # no slip
+    no_slip = dolfin.Constant((0.0, 0.0))
+    bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries, 3)
+    # inflow and outflow of fluid
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
-    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, dom_left)
-    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, dom_right)
+    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 1)
+    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 2)
+    # pressure out
     pressure_out = dolfin.Constant(0.0)
-    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, dom_right)
-    # bcs = [bc_no_slip, bc_v_left, bc_v_right, bc_p_right]
-    bcs = [bc_v_left, bc_p_right, bc_v_right]
+    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 3)
+    # boundary conditions
+    bcs_flow = [bc_v_left, bc_p_right, bc_v_right, bc_no_slip]
 
-    return bcs
+    return bcs_flow
 
 
 ### UTILITARIAN FUNCTIONS
-
-### BOUNDARIES : tells were the boundaries are (square)
-
-class BD_right(dolfin.SubDomain):
-    """
-    :param dim_x: dimension in the direction of x
-    """
-
-    def __init__(self, dim_x, **kwargs):
-        self.dim_x = dim_x
-        super().__init__(**kwargs)
-
-    def inside(self, x, on_boundary):
-        d_x = self.dim_x
-        return x[0] > (d_x / 2 - dolfin.DOLFIN_EPS)
-
-
-class BD_left(dolfin.SubDomain):
-    """
-    :param dim_x: dimension in the direction of x
-    """
-
-    def __init__(self, dim_x, **kwargs):
-        self.dim_x = dim_x
-        super().__init__(**kwargs)
-
-    def inside(self, x, on_boundary):
-        d_x = self.dim_x
-        return x[0] < - d_x / 2 + dolfin.DOLFIN_EPS
-
-
-class BD_top_bottom(dolfin.SubDomain):
-    """
-    :param dim_y: dimension in the direction of y
-    """
-
-    def __init__(self, dim_y, **kwargs):
-        self.dim_y = dim_y
-        super().__init__(**kwargs)
-
-    def inside(self, x, on_boundary):
-        d_y = self.dim_y
-        return x[1] > d_y - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS
 
 
 ### Transformation
