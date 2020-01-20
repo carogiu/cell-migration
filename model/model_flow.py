@@ -61,10 +61,9 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     prm_flow["absolute_tolerance"] = 1E-7
     prm_flow["relative_tolerance"] = 1E-4
     prm_flow["maximum_iterations"] = 1000
+    dolfin.parameters["form_compiler"]["optimize"] = True
+    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
     solver_flow.solve()
-
-    # dolfin.solve(a_flow == L_flow, u_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
-    #             form_compiler_parameters={"optimize": True})
     return u_flow
 
 
@@ -83,21 +82,21 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
     dom_tb = BD_top_bottom(dim_y)
-    boundaries = dolfin.MeshFunction("size_t", mesh, 1)
-    boundaries.set_all(0)
-    dom_left.mark(boundaries, 1)
-    dom_right.mark(boundaries, 2)
-    dom_tb.mark(boundaries, 3)
+    boundaries_flow = dolfin.MeshFunction("size_t", mesh, 1)
+    boundaries_flow.set_all(0)
+    dom_left.mark(boundaries_flow, 1)
+    dom_right.mark(boundaries_flow, 2)
+    dom_tb.mark(boundaries_flow, 3)
     # no slip
     no_slip = dolfin.Constant((0.0, 0.0))
-    bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries, 3)
+    bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries_flow, 3)
     # inflow and outflow of fluid
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
-    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 1)
-    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 2)
+    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries_flow, 1)
+    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries_flow, 2)
     # pressure out
     pressure_out = dolfin.Constant(0.0)
-    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 3)
+    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries_flow, 2)
     # boundary conditions
     bcs_flow = [bc_v_left, bc_p_right, bc_v_right, bc_no_slip]
 
@@ -120,13 +119,9 @@ def theta_phi(theta, phi):
 
 
 ### TESTS Functions
+"""
+#   Creates the function U for the problem of Stokes flow (U = u, p)
 def problem_stokes_flow(w_flow, vi):  # THIS IS WORKING
-    """
-    Creates the function U for the problem of Stokes flow (U = u, p)
-    :param w_flow: Function space
-    :param vi: Expression, inflow velocity
-    :return: dolfin Function
-    """
     bcs = boundary_conditions_flow(w_flow, vi)
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
@@ -138,16 +133,8 @@ def problem_stokes_flow(w_flow, vi):  # THIS IS WORKING
                  form_compiler_parameters={"optimize": True})
     return U_flow
 
-
+#     Partially solves the phase field with inflow vi, but no coupling term
 def flow_static_phase_no_mu(w_flow, vi, phi, theta):  # THIS IS WORKING
-    """
-    Partially solves the phase field with inflow vi, but no coupling term
-    @param w_flow: Function space
-    @param vi: Expression, inflow velocity
-    @param phi: Function, phase
-    @param theta: float, friction ratio
-    @return:
-    """
     theta_p = theta_phi(theta, phi)
     bcs = boundary_conditions_flow(w_flow, vi)
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
@@ -161,7 +148,7 @@ def flow_static_phase_no_mu(w_flow, vi, phi, theta):  # THIS IS WORKING
     return u_flow
 
 
-"""
+
 
 def right(x):
     return x[0] > ( 1.0 - dolfin.DOLFIN_EPS)

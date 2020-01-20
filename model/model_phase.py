@@ -120,7 +120,7 @@ def problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, v
     return F, J, u
 
 
-def solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh):
+def solve_phase(F, J, u, space_ME, dim_x, mesh):
     """
     Solves the variational problem
     @param F: Function
@@ -129,11 +129,10 @@ def solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh):
     @return: Function
     @param space_ME: function space
     @param dim_x: dimension in the direction of x
-    @param dim_y: dimension in the direction of y
     @param mesh: mesh
     """
-    # boundaryes
-    bcs_phase = boundary_conditions_flow(space_ME, dim_x, dim_y, mesh)
+    # boundaries
+    bcs_phase = boundary_conditions_phase(space_ME, dim_x, mesh)
     # problem_phase = CahnHilliardEquation(a, L)
     # solver_phase = dolfin.NewtonSolver()
 
@@ -147,6 +146,8 @@ def solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh):
     prm["newton_solver"]["relative_tolerance"] = 1E-4
     prm["newton_solver"]["maximum_iterations"] = 500
     prm["newton_solver"]["relaxation_parameter"] = 1.0
+    dolfin.parameters["form_compiler"]["optimize"] = True
+    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
     """
     solver_phase.parameters["linear_solver"] = "lu"
     solver_phase.parameters["convergence_criterion"] = "incremental"
@@ -154,14 +155,13 @@ def solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh):
     solver_phase.parameters["relative_tolerance"] = 1e-4
     solver_phase.parameters["maximum_iterations"] = 1000
     """
-    dolfin.parameters["form_compiler"]["optimize"] = True
-    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
+
     solver_phase.solve()
     return u
 
 
 ### BOUNDARIES### CREATE BOUNDARIES
-def boundary_conditions_flow(space_ME, dim_x, mesh):
+def boundary_conditions_phase(space_ME, dim_x, mesh):
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
     :param space_ME: Function space
@@ -171,12 +171,12 @@ def boundary_conditions_flow(space_ME, dim_x, mesh):
     """
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
-    boundaries = dolfin.MeshFunction("size_t", mesh, 1)
-    boundaries.set_all(0)
-    dom_left.mark(boundaries, 1)
-    dom_right.mark(boundaries, 2)
-    bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), boundaries, 1)
-    bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), boundaries, 2)
+    boundaries_phase = dolfin.MeshFunction("size_t", mesh, 1)
+    boundaries_phase.set_all(0)
+    dom_left.mark(boundaries_phase, 1)
+    dom_right.mark(boundaries_phase, 2)
+    bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), boundaries_phase, 1)
+    bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), boundaries_phase, 2)
     bcs_phase = [bc_phi_left, bc_phi_right]
 
     return bcs_phase
@@ -195,13 +195,9 @@ def mu_calc(mid, mu, mu_0):
 
 
 ### NOT USED ANYMORE
-
+"""
+#     (For the example) Defines the potential
 def potential(phi):
-    """
-    (For the example) Defines the potential
-    @param phi: Function
-    @return: Function
-    """
     phi = dolfin.variable(phi)
     f = 100 * phi ** 2 * (1 - phi) ** 2
     df_dphi = dolfin.diff(f, phi)
@@ -210,23 +206,10 @@ def potential(phi):
 
 
 ### TEST FUNCTIONS
-def problem_phase(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, lmbda, dt):
-    """
-    Defines the problem for the example
-    @param phi_test: Test function
-    @param mu_test: Test function
-    @param du: Trial Function
-    @param u: Function, current solution
-    @param phi: Function, current solution
-    @param mu: Function, current solution
-    @param phi_0: Function, previous solution
-    @param mu_0: Function, previous solution
-    @param velocity: Expression
-    @param mid: float
-    @param lmbda: float
-    @param dt: float
-    @return: Functions
-    """
+
+#     Defines the problem for the example
+def problem_phase_old(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, lmbda, dt):
+
     mu_mid = mu_calc(mid, mu, mu_0)
 
     L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * dot(velocity, grad(phi_0)) * phi_test * dx + dt * dot(
@@ -236,3 +219,4 @@ def problem_phase(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid,
 
     a = dolfin.derivative(L, u, du)
     return a, L, u
+"""

@@ -105,7 +105,7 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
         F, J, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
                                              epsilon, factor)
         u0.vector()[:] = u.vector()
-        u = solve_phase(F, J, u, space_ME, dim_x, dim_y, mesh)
+        u = solve_phase(F, J, u, space_ME, dim_x, mesh)
         u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
         velocity, pressure = dolfin.split(u_flow)
         phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, i, mesh, nx, ny)
