@@ -1,5 +1,6 @@
 import dolfin
 
+
 # boundaries
 
 class BD_right(dolfin.SubDomain):
@@ -13,7 +14,7 @@ class BD_right(dolfin.SubDomain):
 
     def inside(self, x, on_boundary):
         d_x = self.dim_x
-        return on_boundary and dolfin.near(x[0], d_x/2, 1E-12)
+        return on_boundary and dolfin.near(x[0], d_x / 2, 1E-12)
 
 
 class BD_left(dolfin.SubDomain):
@@ -27,7 +28,7 @@ class BD_left(dolfin.SubDomain):
 
     def inside(self, x, on_boundary):
         d_x = self.dim_x
-        return on_boundary and dolfin.near(x[0], -d_x/2, 1E-12)
+        return on_boundary and dolfin.near(x[0], -d_x / 2, 1E-12)
 
 
 class BD_top_bottom(dolfin.SubDomain):
