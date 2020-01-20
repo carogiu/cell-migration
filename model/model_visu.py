@@ -38,6 +38,7 @@ def visu(arr, name, time, dim_x, dim_y):
     plt.title(name + ' for t=' + time)
     plt.xlabel('x')
     plt.ylabel('y')
+    plt.savefig('Figures/'+name+'_'+time+'.png')
     plt.show()
     plt.close(fig)
 
