@@ -33,7 +33,13 @@ def visu(arr, name, time, dim_x, dim_y):
     @return: figure
     """
     fig = plt.figure()
-    plt.imshow(arr, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y])
+    if name =='Phase':
+        vmin, vmax = -1.1, 1.1
+    if name == 'Vx':
+        vmin, vmax = -5, +5
+    if name == 'Pressure':
+        vmin, vmax = 0, 30
+    plt.imshow(arr, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=vmin, vmax=vmax)
     plt.colorbar()
     plt.title(name + ' for t=' + time)
     plt.xlabel('x')
