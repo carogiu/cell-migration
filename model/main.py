@@ -5,8 +5,7 @@ import time
 
 from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
-from model.model_save_evolution import main_save, interm_save
-from model.model_visu import main_visu
+from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
 
 ### Constants
@@ -37,23 +36,15 @@ def main_model(config):
     space_ME = space_phase(mesh)
     w_flow = space_flow(mesh)
 
-    print('Expected computation time = '+str(nx*ny*n*(5E-4)/60)+' minutes')
+    print('Expected computation time = ' + str(nx * ny * n * (5E-4) / 60) + ' minutes')
     t1 = time.time()
-    # Compute the model
-    phi_tot, vx_tot, vy_tot, p_tot = time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh,
-                                                    nx, ny, dim_x, dim_y)
-    t2 = time.time()
-    print('Total computation time = '+str((t2-t1)/60)+' minutes')
-    # TODO : save the arrays as csv files in the future
-
     # save the parameters used
-    save_param(nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi)
-
-    # Plots
-    main_visu(phi_tot, 'Phase', dim_x, dim_y)
-    main_visu(vx_tot, 'Vx', dim_x, dim_y)
-    # main_visu(vy_tot, 'Vy', dim_x, dim_y)
-    main_visu(p_tot, 'Pressure', dim_x, dim_y)
+    folder_name = save_param(nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi)
+    # Compute the model
+    time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh,
+                   nx, ny, dim_x, dim_y, folder_name)
+    t2 = time.time()
+    print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 
     return
 
@@ -70,14 +61,12 @@ def mesh_from_dim(nx, ny, dim_x, dim_y):
     :param dim_y : dimensions in y direction
     :return: mesh
     """
-    # Unit square mesh
-    # mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
-    # Square mesh of dimension dim_x x dim_y
     mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x / 2, 0.0), dolfin.Point(dim_x / 2, dim_y), nx, ny)
     return mesh
 
 
-def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny, dim_x, dim_y):
+def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny, dim_x, dim_y,
+                   folder_name):
     """
 
     @param space_ME: Function space, for the phase
@@ -97,19 +86,15 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     @param dim_x: int, dimension in the direction of x
     @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
-    t_ini_1=time.time()
+    t_ini_1 = time.time()
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
     # initiate the velocity and the pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    pressure = dolfin.Expression("dim_x/2-x[0]", degree=1, dim_x = dim_x)
+    pressure = dolfin.Expression("dim_x/2-x[0]", degree=1, dim_x=dim_x)
     # save the solutions
-    phi_tot = np.zeros((nx + 1, ny + 1, n))
-    vx_tot = np.zeros((nx + 1, ny + 1, n))
-    vy_tot = np.zeros((nx + 1, ny + 1, n))
-    p_tot = np.zeros((nx + 1, ny + 1, n))
-    phi_tot, vx_tot, vy_tot, p_tot = interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, 0, mesh, nx, ny)
+    main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
     t_ini_2 = time.time()
-    print('Initiation time = '+str(t_ini_2-t_ini_1)+' seconds')
+    print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
     for i in range(1, n):
         t_1 = time.time()
         F, J, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
@@ -119,8 +104,9 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
         u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor,
                                  epsilon)  # solve the new velocity and pressure fields
         velocity, pressure = dolfin.split(u_flow)
-        phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, i, mesh, nx, ny)
+        # save figure in folder
+        main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name)
         t_2 = time.time()
-        print('Progress = ' + str(i + 1) + '/' + str(n)+', Computation time = '+ str(t_2-t_1)+' seconds')
+        print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
 
-    return phi_tot, vx_tot, vy_tot, p_tot
+    return

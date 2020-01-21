@@ -1,6 +1,8 @@
 ### Packages
-from dolfin import Expression, Constant
+from dolfin import Constant
 import numpy as np
+import time
+import os
 
 
 ### Class
@@ -41,9 +43,36 @@ class ModelParam:
 
 
 def save_param(nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi):
-    file = open("Figures/param.txt", "w")
-    file.write("nx=" + str(nx) + "\n ny=" + str(ny) + "\n n=" + str(n) + "\n dim_x=" + str(
-        dim_x) + "\n dim_y=" + dim_y + "\n theta=" + str(theta) + "\n epsilon=" + str(epsilon) + "\n dt=" + str(
-        dt) + "\n mob=" + str(mob) + "\n vi=" + str(vi))
+    """
+    Saves the parameters in a text files + returns the name of the folder for other saves
+    :param nx: size of the mesh
+    :param ny: size of the mesh
+    :param n: number of time steps
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param theta: viscosity ration
+    :param epsilon: length scale ratio
+    :param dt: time step
+    :param mob: mobility ration
+    :param vi: initial velocity
+    :return: string, name of the folder where files should be saved
+    """
+    t = time.localtime()
+    y, m, d = t.tm_year, t.tm_mon, t.tm_mday
+    i = 1
+    folder_name = str(d) + "-" + str(m) + "-" + str(y) + "#" + str(i)
+    newpath = r'Figures/' + folder_name
+
+    while os.path.exists(newpath):
+        i = i + 1
+        folder_name = str(d) + "-" + str(m) + "-" + str(y) + "#" + str(i)
+        newpath = r'Figures/' + folder_name
+
+    os.makedirs(newpath)
+    file = open("Figures/" + folder_name + "/param.txt", "w")
+    file.write("Parameters: \n nx=" + str(nx) + "\n ny=" + str(ny) + "\n n=" + str(n) + "\n dim_x=" + str(
+        dim_x) + "\n dim_y=" + str(dim_y) + "\n theta=" + str(theta.values()[0]) + "\n epsilon=" + str(
+        epsilon.values()[0]) + "\n dt=" + str(
+        dt.values()[0]) + "\n mob=" + str(mob.values()[0]) + "\n vi=" + vi)
     file.close()
-    return
+    return folder_name

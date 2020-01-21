@@ -14,7 +14,7 @@ def main_visu(arr_tot, name, dim_x, dim_y):
     """
     n = arr_tot.shape[2]
     for i in range(n):
-        if i % 1 == 0:  # can change here if want 1/2, 1/3 figures etc
+        if i % 2 == 0:  # can change here if want 1/2, 1/3 figures etc
             arr = arr_tot[:, :, i]
             time = str(int(i))
             visu(arr, name, time, dim_x, dim_y)
@@ -33,9 +33,9 @@ def visu(arr, name, time, dim_x, dim_y):
     @return: figure
     """
     fig = plt.figure()
-    if name =='Phase':
+    if name == 'Phase':
         vmin, vmax = -1.1, 1.1
-    if name == 'Vx':
+    if name == 'Vx' or name == 'Vy':
         vmin, vmax = -5, +5
     if name == 'Pressure':
         vmin, vmax = 0, 30
@@ -44,7 +44,6 @@ def visu(arr, name, time, dim_x, dim_y):
     plt.title(name + ' for t=' + time)
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig('Figures/' + name + '_' + time + '.png')
     plt.show()
     plt.close(fig)
 
