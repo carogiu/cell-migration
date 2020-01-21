@@ -38,3 +38,12 @@ class ModelParam:
         self.dt = Constant(dt)
         self.mob = Constant(mob)
         self.vi = vi
+
+
+def save_param(nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi):
+    file = open("Figures/param.txt", "w")
+    file.write("nx=" + str(nx) + "\n ny=" + str(ny) + "\n n=" + str(n) + "\n dim_x=" + str(
+        dim_x) + "\n dim_y=" + dim_y + "\n theta=" + str(theta) + "\n epsilon=" + str(epsilon) + "\n dt=" + str(
+        dt) + "\n mob=" + str(mob) + "\n vi=" + str(vi))
+    file.close()
+    return

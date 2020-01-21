@@ -25,6 +25,36 @@ def main_save(phi_tot, vx_tot, vy_tot, p_tot, u, U_flow, i, mesh, nx, ny):
 
     return phi_tot, vx_tot, vy_tot, p_tot
 
+def interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, i, mesh, nx, ny):
+    """
+    For a time i, extracts ux, uy, p from U_flow and the phase from u and saves them at the position i in the
+    corresponding arrays
+    @param phi_tot: array, contains all the values of phi for all the intermediate times
+    @param vx_tot: array, contains all the values of vx for all the intermediate times
+    @param vy_tot: array, contains all the values of vy for all the intermediate times
+    @param p_tot: array, contains all the values of p for all the intermediate times
+    @param u: dolfin Function
+    @param pressure: dolfin Function
+    @param velocity: dolfin Function
+    @param i: int, number of the time step
+    @param mesh: dolfin mesh
+    @param nx: int, grid dimension
+    @param ny: int, grid dimension
+    @return: arrays
+    """
+    phi_tot = save_phi(phi_tot, u, i, mesh, nx, ny)
+    arr_p = pressure.compute_vertex_values(mesh).reshape(nx + 1, ny + 1)
+    arr_u = velocity.compute_vertex_values(mesh)
+    arr_u = np.reshape(arr_u, (2, nx + 1, ny + 1))
+    arr_ux = arr_u[0][::-1]
+    arr_uy = arr_u[1][::-1]
+    vx_tot[:, :, i] = arr_ux
+    vy_tot[:, :, i] = arr_uy
+    p_tot[:, :, i] = arr_p
+
+    return phi_tot, vx_tot, vy_tot, p_tot
+
+
 
 ### Partial saves
 def save_flow(vx_tot, vy_tot, p_tot, U_flow, i, mesh, nx, ny):
