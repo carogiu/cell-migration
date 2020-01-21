@@ -39,7 +39,7 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     bcs_flow = boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh)
     # continuous viscosity
     theta_p = theta_phi(theta, phi)
-    # inflow condition for ds
+    # inflow condition
     v_i = dolfin.Expression(vi, degree=1)
     id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
                               dim_x=dim_x, tol=1E-12)  # = 1 in the inflow on the left, 0 otherwise
@@ -82,11 +82,12 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
     dom_tb = BD_top_bottom(dim_y)
-    boundaries_flow = dolfin.MeshFunction("size_t", mesh, 1)
+    boundaries_flow = dolfin.MeshFunction("size_t", mesh, 1)  # used to define the facets (dimension 1)
     boundaries_flow.set_all(0)
-    dom_left.mark(boundaries_flow, 1)
-    dom_right.mark(boundaries_flow, 2)
-    dom_tb.mark(boundaries_flow, 3)
+    dom_left.mark(boundaries_flow, 1)  # left is marked as (1)
+    dom_right.mark(boundaries_flow, 2)  # right is marked as (2)
+    dom_tb.mark(boundaries_flow, 3)  # tob-bottom is marked as (3)
+    # TODO : the part above can probably be put in common with the one from the phase
     # no slip
     no_slip = dolfin.Constant((0.0, 0.0))
     bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries_flow, 3)
@@ -99,6 +100,7 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries_flow, 2)
     # boundary conditions
     bcs_flow = [bc_v_left, bc_p_right, bc_v_right, bc_no_slip]
+    # bcs_flow = [bc_v_left, bc_p_right, bc_v_right]
 
     return bcs_flow
 

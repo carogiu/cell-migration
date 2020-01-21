@@ -54,7 +54,7 @@ def main_model(config):
 
 def mesh_from_dim(nx, ny, dim_x, dim_y):
     """
-    Creates mesh of dimension nx, ny of type quadrilateral
+    Creates mesh of dimension nx, ny of dimensions dim_x x dim_y
 
     :param nx: number of cells in x direction
     :param ny: number of cells in y direction
@@ -64,7 +64,7 @@ def mesh_from_dim(nx, ny, dim_x, dim_y):
     """
     # Unit square mesh
     # mesh = dolfin.UnitSquareMesh.create(nx, ny, dolfin.CellType.Type.quadrilateral)
-    # Square mesh of dimension 100x100
+    # Square mesh of dimension dim_x x dim_y
     mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x / 2, 0.0), dolfin.Point(dim_x / 2, dim_y), nx, ny)
     return mesh
 
@@ -90,23 +90,22 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
-    # u_flow = problem_coupled(mesh, dim_x,dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
+    # initiate the velocity and the pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
     pressure = dolfin.Expression("1-x[0]", degree=1)
-    # velocity, pressure = dolfin.split(u_flow)
     # save the solutions
     phi_tot = np.zeros((nx + 1, ny + 1, n))
     vx_tot = np.zeros((nx + 1, ny + 1, n))
     vy_tot = np.zeros((nx + 1, ny + 1, n))
     p_tot = np.zeros((nx + 1, ny + 1, n))
-    # phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, 0, mesh, nx, ny)
     phi_tot, vx_tot, vy_tot, p_tot = interm_save(phi_tot, vx_tot, vy_tot, p_tot, u, velocity, pressure, 0, mesh, nx, ny)
     for i in range(1, n):
         F, J, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
                                              epsilon, factor)
-        u0.vector()[:] = u.vector()
-        u = solve_phase(F, J, u, space_ME, dim_x, mesh)
-        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsilon)
+        u0.vector()[:] = u.vector()  # save the previous solution of u
+        u = solve_phase(F, J, u, space_ME, dim_x, mesh)  # solve u for the next time step
+        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor,
+                                 epsilon)  # solve the new velocity and pressure fields
         velocity, pressure = dolfin.split(u_flow)
         phi_tot, vx_tot, vy_tot, p_tot = main_save(phi_tot, vx_tot, vy_tot, p_tot, u, u_flow, i, mesh, nx, ny)
         print('Progress = ' + str(i + 1) + '/' + str(n))

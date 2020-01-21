@@ -16,9 +16,8 @@ class ModelParam:
     theta : float, relative viscosity (usually 0.5, 1 or 2)
     epsilon : float, ratio between interface and length scale
     dt : float, size of a time step
-    mob : float, energy factor (mobility of the fluid)
+    mob : float, mobility ratio
     vi : Expression, inflow velocity
-    velocity : Expression, inflow velocity (if the inflow velocity is not a constant)
     """
 
     def __init__(self, nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi):

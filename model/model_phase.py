@@ -34,7 +34,7 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
         return (2,)  # dimension 2 (phi,mu)
 
 
-### Initialise Problem resolution
+### Initialise Problem resolution (not used anymore)
 class CahnHilliardEquation(dolfin.NonlinearProblem):
     """
     Creates the problem, initiates the residual vector and the Jacobian matrix
@@ -144,7 +144,7 @@ def solve_phase(F, J, u, space_ME, dim_x, mesh):
     prm = solver_phase.parameters
     prm["newton_solver"]["absolute_tolerance"] = 1E-7
     prm["newton_solver"]["relative_tolerance"] = 1E-4
-    prm["newton_solver"]["maximum_iterations"] = 500
+    prm["newton_solver"]["maximum_iterations"] = 1000
     prm["newton_solver"]["relaxation_parameter"] = 1.0
     dolfin.parameters["form_compiler"]["optimize"] = True
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
@@ -171,12 +171,14 @@ def boundary_conditions_phase(space_ME, dim_x, mesh):
     """
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
-    boundaries_phase = dolfin.MeshFunction("size_t", mesh, 1)
+    boundaries_phase = dolfin.MeshFunction("size_t", mesh, 1)  # used to define the facets (dimension 1)
     boundaries_phase.set_all(0)
-    dom_left.mark(boundaries_phase, 1)
-    dom_right.mark(boundaries_phase, 2)
-    bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), boundaries_phase, 1)
-    bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), boundaries_phase, 2)
+    dom_left.mark(boundaries_phase, 1)  # left is marked as (1)
+    dom_right.mark(boundaries_phase, 2)  # right is marked as (2)
+    bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), boundaries_phase,
+                                     1)  # phi = -1 on the left (1)
+    bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), boundaries_phase,
+                                      2)  # phi = +1 on the right (2)
     bcs_phase = [bc_phi_left, bc_phi_right]
 
     return bcs_phase
