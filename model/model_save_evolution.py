@@ -72,9 +72,9 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
     if name == 'Phase':
         vmin, vmax = -1.1, 1.1
     if name == 'Vx' or name == 'Vy':
-        vmin, vmax = -5, +5
+        vmin, vmax = -2.5, +2.5
     if name == 'Pressure':
-        vmin, vmax = 0, 30
+        vmin, vmax = 0, dim_x/2 + 3
 
     plt.imshow(arr, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=vmin, vmax=vmax)
     plt.colorbar()

@@ -90,20 +90,27 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
     # initiate the velocity and the pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    pressure = dolfin.Expression("dim_x/2-x[0]", degree=1, dim_x=dim_x)
+    pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
     # save the solutions
     main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
     t_ini_2 = time.time()
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
     for i in range(1, n):
         t_1 = time.time()
+
+        # First solve the flow and the pressure with phi_0 and mu_0
+        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi_0, mu_0, vi, theta, factor, epsilon)
+        velocity, pressure = dolfin.split(u_flow)
+
+        # Then solve the phase to get phi and mu (time n+1)
         F, J, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
                                              epsilon, factor)
-        u0.vector()[:] = u.vector()  # save the previous solution of u
         u = solve_phase(F, J, u, space_ME, dim_x, mesh)  # solve u for the next time step
-        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor,
-                                 epsilon)  # solve the new velocity and pressure fields
-        velocity, pressure = dolfin.split(u_flow)
+
+        # Finally update the value of phi_0 and u_0
+        u0.vector()[:] = u.vector()
+        phi_0, mu_0 = dolfin.split(u0)
+
         # save figure in folder
         main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name)
         t_2 = time.time()
