@@ -71,12 +71,18 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
     fig = plt.figure()
     if name == 'Phase':
         vmin, vmax = -1.1, 1.1
-    if name == 'Vx' or name == 'Vy':
+        map = 'seismic'
+    if name == 'Vy':
         vmin, vmax = -2.5, +2.5
+        map = 'gist_rainbow'
+    if name == 'Vx':
+        vmin, vmax = -4, +6
+        map = 'gist_rainbow'
     if name == 'Pressure':
-        vmin, vmax = 0, dim_x/2 + 3
+        vmin, vmax = 0, dim_x / 2 + 3
+        map = 'jet'
 
-    plt.imshow(arr, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=vmin, vmax=vmax)
+    plt.imshow(arr, cmap=map, extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=vmin, vmax=vmax)
     plt.colorbar()
     plt.title(name + ' for t=' + str(time))
     plt.xlabel('x')
@@ -125,6 +131,23 @@ def array_exp_phase(u, mesh, nx, ny):
     arr_phi = np.reshape(arr_phi, (nx + 1, ny + 1))[::-1]
     arr_mu = np.reshape(arr_mu, (nx + 1, ny + 1))[::-1]
     return arr_phi, arr_mu
+
+
+def interface(arr_phi):
+    """
+    Find the interface from the phase (interface : phi=0)
+    @param arr_phi: array, values of phi for a given time
+    @return: array (should be 1 x ny but needs improvements)
+    """
+    n = len(arr_phi)
+    arr_interface = []
+    for i in range(n):
+        for j in range(n):
+            if abs(arr_phi[i, j]) < .5:
+                arr_interface.append([i, j])
+    arr_interface = np.asarray(arr_interface)
+
+    return arr_interface
 
 
 ### Partial saves (not used anymore)

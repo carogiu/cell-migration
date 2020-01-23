@@ -89,8 +89,10 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
     t_ini_1 = time.time()
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
     # initiate the velocity and the pressure field
-    velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
+    #velocity = dolfin.Expression((vi, "0.0"), degree=2)
+    #pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
+    velocity = dolfin.Expression(("0.0"," 0.0"), degree=2)
+    pressure = dolfin.Expression("0", degree=1)
     # save the solutions
     main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
     t_ini_2 = time.time()

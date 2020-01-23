@@ -55,8 +55,8 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     # Solver
     problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs_flow)
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
-    solver_flow.parameters["linear_solver"] = "lu"
-    solver_flow.parameters["preconditioner"] = "ilu"
+    solver_flow.parameters["linear_solver"] = "mumps"
+    #solver_flow.parameters["preconditioner"] = "ilu"
     prm_flow = solver_flow.parameters["krylov_solver"]  # short form
     prm_flow["absolute_tolerance"] = 1E-7
     prm_flow["relative_tolerance"] = 1E-4

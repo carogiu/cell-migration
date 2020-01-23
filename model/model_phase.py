@@ -18,12 +18,12 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
 
     def eval(self, values, x):
         ep = float(self.epsilon)
-        if abs(x[0]) < ep / 2:
+        if abs(x[0]) < .5:
             # random perturbation
-            dx = np.random.randn(1) * ep
+            # dx = np.random.randn(1) * ep
             # sin perturbation
             # dx = np.sin(x[1] * 30) * ep
-            values[0] = np.tanh(((x[0] + dx) * 2) / (ep * np.sqrt(2)))  # phi(0)
+            values[0] = np.tanh(((x[0] + +.3*np.sin(x[1]*10)) * 2) / (ep * np.sqrt(2)))  # phi(0)
 
 
         else:
