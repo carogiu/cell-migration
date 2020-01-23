@@ -61,15 +61,15 @@ def save_param(nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi):
     y, m, d = t.tm_year, t.tm_mon, t.tm_mday
     i = 1
     folder_name = str(d) + "-" + str(m) + "-" + str(y) + "#" + str(i)
-    newpath = r'Figures/' + folder_name
+    newpath = r'results/Figures/' + folder_name
 
     while os.path.exists(newpath):
         i = i + 1
         folder_name = str(d) + "-" + str(m) + "-" + str(y) + "#" + str(i)
-        newpath = r'Figures/' + folder_name
+        newpath = r'results/Figures/' + folder_name
 
     os.makedirs(newpath)
-    file = open("Figures/" + folder_name + "/param.txt", "w")
+    file = open("results/Figures/" + folder_name + "/param.txt", "w")
     file.write("Parameters: \n nx=" + str(nx) + "\n ny=" + str(ny) + "\n n=" + str(n) + "\n dim_x=" + str(
         dim_x) + "\n dim_y=" + str(dim_y) + "\n theta=" + str(theta.values()[0]) + "\n epsilon=" + str(
         epsilon.values()[0]) + "\n dt=" + str(
