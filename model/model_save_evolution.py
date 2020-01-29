@@ -87,7 +87,7 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
     plt.title(name + ' for t=' + str(time))
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig('Figures/' + folder_name + "/" + name + '_' + str(time) + '.png')
+    plt.savefig('results/Figures/' + folder_name + "/" + name + '_' + str(time) + '.png')
     plt.close(fig)
 
     return
