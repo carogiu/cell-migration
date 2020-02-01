@@ -1,7 +1,7 @@
 ### Import
 import dolfin
-import numpy as np
 import time
+import numpy as np
 
 from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
@@ -19,32 +19,43 @@ def main_model(config):
     """
     Run complete model from global main parameters and observe results.
     """
-    # retrieve parameters
+    # Retrieve parameters
+
+    # Grid parameters
+    h = config.h
     nx, ny = config.nx, config.ny
     dim_x, dim_y = config.dim_x, config.dim_y
-    n = config.n
+    # Time parameters
+    n, dt = config.n, config.dt
+    # Model parameters
     theta = config.theta
-    factor = config.factor
+    Cahn = config.Cahn
+    Pe = config.Pe
+    Ca = config.Ca
+    # Initial perturbation parameters
+    h_0 = config.h_0
+    wave = config.wave
+    # Dimensionless parameters
     vi = config.vi
-    epsilon = config.epsilon
     mid = config.mid
-    dt = config.dt
-    mob = config.mob
 
     # Create Mesh
     mesh = mesh_from_dim(nx, ny, dim_x, dim_y)
     space_ME = space_phase(mesh)
     w_flow = space_flow(mesh)
 
-    print('Expected computation time = ' + str(nx * ny * n * (5E-4) / 60) + ' minutes')
+    # print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')
     t1 = time.time()
     # save the parameters used
-    folder_name = save_param(nx, ny, n, dim_x, dim_y, theta, epsilon, dt, mob, vi)
+    folder_name = save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave)
     # Compute the model
-    time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh,
-                   nx, ny, dim_x, dim_y, folder_name)
+    interface_tot = time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave,
+                                   vi, mid,
+                                   folder_name)
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
+
+    print(interface_tot)
 
     return
 
@@ -65,34 +76,34 @@ def mesh_from_dim(nx, ny, dim_x, dim_y):
     return mesh
 
 
-def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n, mesh, nx, ny, dim_x, dim_y,
+def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave, vi, mid,
                    folder_name):
     """
-
-    @param space_ME: Function space, for the phase
-    @param w_flow: Function space, for the flow
-    @param vi: Expression, initial velocity
-    @param theta: float, friction ratio
-    @param factor: float, numerical factor
-    @param epsilon: float, length scale ratio
-    @param mid: float, time discretization Crank Nicholson
-    @param dt: float, time step
-    @param mob: float, energy value
-    @param n: int, number of time steps
-    @param mesh: dolfin mesh
-    @param nx: int, grid dimension
-    @param ny: int, grid dimension
-    @param dim_y: int, dimension in the direction of y
-    @param dim_x: int, dimension in the direction of x
-    @return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
+    :param mesh: dolfin mesh
+    :param nx: int, grid dimension
+    :param ny: int, grid dimension
+    :param dim_y: int, dimension in the direction of y
+    :param dim_x: int, dimension in the direction of x
+    :param n: int, number of time steps
+    :param dt: float, time step
+    :param space_ME: Function space, for the phase
+    :param w_flow: Function space, for the flow
+    :param theta: float, friction ratio
+    :param Cahn: float, Cahn number
+    :param Pe: float, Peclet number
+    :param Ca: float, Capillary number
+    :param h_0: float, amplitude of the perturbation
+    :param wave: float, wave number of the perturbation
+    :param vi: Expression, initial velocity
+    :param mid: float, time scheme Crank Nicholson
+    :param folder_name: string, name of the folder where files should be saved
+    :return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
     t_ini_1 = time.time()
-    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, epsilon)
+    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, Cahn, h_0, wave)
     # initiate the velocity and the pressure field
-    #velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    #pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
-    velocity = dolfin.Expression(("0.0"," 0.0"), degree=2)
-    pressure = dolfin.Expression("0", degree=1)
+    velocity = dolfin.Expression((vi, "0.0"), degree=2)
+    pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
     # save the solutions
     main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
     t_ini_2 = time.time()
@@ -101,13 +112,13 @@ def time_evolution(space_ME, w_flow, vi, theta, factor, epsilon, mid, dt, mob, n
         t_1 = time.time()
 
         # First solve the flow and the pressure with phi_0 and mu_0
-        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi_0, mu_0, vi, theta, factor, epsilon)
+        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, Ca)
         velocity, pressure = dolfin.split(u_flow)
 
         # Then solve the phase to get phi and mu (time n+1)
-        F, J, u = problem_phase_with_epsilon(phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity, mid, dt, mob,
-                                             epsilon, factor)
-        u = solve_phase(F, J, u, space_ME, dim_x, mesh)  # solve u for the next time step
+        F, J, u, bcs_phase = problem_phase_with_epsilon(space_ME, dim_x, dim_y, mesh, phi_test, mu_test, du, u, phi, mu,
+                                                        phi_0, mu_0, velocity, mid, dt, Pe, Cahn)
+        u = solve_phase(F, J, u, bcs_phase)  # solve u for the next time step
 
         # Finally update the value of phi_0 and u_0
         u0.vector()[:] = u.vector()
