@@ -1,7 +1,7 @@
 ### Packages
 import dolfin
-from ufl import dot, div, inner, grad
-from model.model_common_functions import BD_left, BD_top_bottom, BD_right
+from ufl import dot, div, grad
+from model.model_domains import dom_and_bound
 
 
 ### Main functions
@@ -20,32 +20,31 @@ def space_flow(mesh):
     return w_flow
 
 
-def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsilon):
+def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, Ca):
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
-    @param mesh: mesh
-    @param dim_x: dimension in the direction of x
-    @param dim_y: dimension in the direction of y
-    @param w_flow: Function space
-    @param phi: Function, phase
-    @param mu: Function, chemical potential
-    @param vi: Expression, inflow
-    @param theta: float, friction ratio
-    @param factor: float, numerical factor
-    @param epsilon: float, length scale ratio
-    @return: solution
+    :param mesh: mesh
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param w_flow: Function space
+    :param phi: Function, phase
+    :param mu: Function, chemical potential
+    :param vi: Expression, inflow
+    :param theta: float, friction ratio
+    :param Ca: float, Capillary number
+    :return: solution
     """
     # boundary conditions
-    bcs_flow, domain_flow, boundaries_flow = boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh)
-    ds = dolfin.ds(subdomain_data=boundaries_flow)
-    dx = dolfin.dx(subdomain_data=domain_flow)
+    bcs_flow, domain, boundaries = boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh)
+    dx = dolfin.dx(subdomain_data=domain)
+    ds = dolfin.ds(subdomain_data=boundaries)
     # continuous viscosity
     theta_p = theta_phi(theta, phi)
     # inflow condition
-    v_i = dolfin.Expression(vi, degree=1)
+    v_i = dolfin.Expression(vi, degree=1)  # vi_x for the inflow
     id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
                               dim_x=dim_x, tol=1E-12)  # = 1 in the inflow on the left, 0 otherwise
-    # top bottom
+    # top bottom condition
     id_tb = dolfin.Expression("((x[1] < tol) or (x[1] > dim_y - tol)) ? 1 : 0", degree=1,
                               dim_x=dim_x, dim_y=dim_y, tol=1E-12)  # = 1 for top bottom, 0 otherwise
     normal = dolfin.FacetNormal(mesh)
@@ -53,18 +52,16 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, factor, epsi
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
     a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test),
-                                                                                      velocity) * dx + pressure * dot(
-        v_test, normal) * id_tb * ds
-    L_flow = -factor * epsilon * phi * dot(v_test, grad(mu)) * dx + (id_in * p_test * v_i) * ds
-    # L_flow = dot(dolfin.Constant((0.0,0.0)),v_test) * dx  # If want to try without the coupling
+                                                                                      velocity) * dx + pressure * dot(v_test, normal) * id_tb * ds
+    L_flow = -(1 / Ca) * phi * dot(v_test, grad(mu)) * dx + (id_in * p_test * v_i) * ds
     u_flow = dolfin.Function(w_flow)
 
     # Solver
     problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs_flow)
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
-    solver_flow.parameters["linear_solver"] = "mumps"
+    solver_flow.parameters["linear_solver"] = "mumps"  # LU did not work for big simulations because of memory capacity
     # solver_flow.parameters["preconditioner"] = "ilu"
-    prm_flow = solver_flow.parameters["krylov_solver"]  # short form
+    prm_flow = solver_flow.parameters["krylov_solver"]
     prm_flow["absolute_tolerance"] = 1E-7
     prm_flow["relative_tolerance"] = 1E-4
     prm_flow["maximum_iterations"] = 1000
@@ -85,34 +82,21 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     :param mesh: mesh
     :return: array of boundary conditions
     """
-    # define interior domain
-    domain_flow = dolfin.MeshFunction("size_t", mesh, 2)
-    domain_flow.set_all(0)
-    # define the subdomains of the boundaries
-    dom_left = BD_left(dim_x)
-    dom_right = BD_right(dim_x)
-    dom_tb = BD_top_bottom(dim_y)
-    boundaries_flow = dolfin.MeshFunction("size_t", mesh, 1)  # used to define the facets (dimension 1)
-    boundaries_flow.set_all(0)
-    dom_left.mark(boundaries_flow, 1)  # left is marked as (1)
-    dom_right.mark(boundaries_flow, 2)  # right is marked as (2)
-    dom_tb.mark(boundaries_flow, 3)  # tob-bottom is marked as (3)
-    # TODO : the part above can probably be put in common with the one from the phase
-    # no slip
-    no_slip = dolfin.Constant((0.0, 0.0))
-    bc_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries_flow, 3)
+    domain, boundaries = dom_and_bound(mesh, dim_x, dim_y)
     # inflow and outflow of fluid
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
-    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries_flow, 1)
-    bc_v_right = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries_flow, 2)
+    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 1)
     # pressure out
     pressure_out = dolfin.Constant(0.0)
-    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries_flow, 2)
+    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
+    # no slip
+    no_slip = dolfin.Constant((0.0, 0.0))
+    bc_v_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries, 3)
     # boundary conditions
-    # bcs_flow = [bc_v_left, bc_p_right, bc_v_right, bc_no_slip]
-    bcs_flow = [bc_v_left, bc_p_right, bc_v_right]
+    # bcs_flow = [bc_v_left, bc_p_right, bc_v_no_slip]
+    bcs_flow = [bc_v_left, bc_p_right]
 
-    return bcs_flow, domain_flow, boundaries_flow
+    return bcs_flow, domain, boundaries
 
 
 ### UTILITARIAN FUNCTIONS
