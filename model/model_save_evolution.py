@@ -44,11 +44,11 @@ def main_save_fig_interm(u, velocity, pressure, i, mesh, nx, ny, dim_x, dim_y, f
     :return:
     """
     arr_phi, _ = array_exp_phase(u, mesh, nx, ny)
-    arr_p = pressure.compute_vertex_values(mesh).reshape(nx + 1, ny + 1)
+    arr_p = pressure.compute_vertex_values(mesh).reshape(ny + 1, nx + 1)
     arr_u = velocity.compute_vertex_values(mesh)
-    arr_u = np.reshape(arr_u, (2, nx + 1, ny + 1))
-    arr_ux = arr_u[0][::-1]
-    arr_uy = arr_u[1][::-1]
+    arr_u = np.reshape(arr_u, (2, ny + 1, nx + 1))
+    arr_ux = arr_u[0]
+    arr_uy = arr_u[1]
     save_fig(arr_phi, 'Phase', i, dim_x, dim_y, folder_name)
     save_fig(arr_ux, 'Vx', i, dim_x, dim_y, folder_name)
     save_fig(arr_uy, 'Vy', i, dim_x, dim_y, folder_name)
@@ -79,7 +79,7 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
         vmin, vmax = -4, +6
         map = 'jet'
     if name == 'Pressure':
-        vmin, vmax = 0, dim_x / 2 + 3
+        vmin, vmax = None, None
         map = 'jet'
 
     plt.imshow(arr, cmap=map, extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=vmin, vmax=vmax)
@@ -105,11 +105,11 @@ def array_exp_flow(U_flow, mesh, nx, ny):
     """
     velocity, pressure = U_flow.split()
     arr_p = pressure.compute_vertex_values(mesh)
-    arr_p = np.reshape(arr_p, (nx + 1, ny + 1))[::-1]
+    arr_p = np.reshape(arr_p, (ny + 1, nx + 1))
     arr_u = velocity.compute_vertex_values(mesh)
-    arr_u = np.reshape(arr_u, (2, nx + 1, ny + 1))
-    arr_ux = arr_u[0][::-1]
-    arr_uy = arr_u[1][::-1]
+    arr_u = np.reshape(arr_u, (2, ny + 1, nx + 1))
+    arr_ux = arr_u[0]
+    arr_uy = arr_u[1]
 
     return arr_ux, arr_uy, arr_p
 
@@ -128,8 +128,8 @@ def array_exp_phase(u, mesh, nx, ny):
     mid = int(n / 2)
     arr_phi = arr[0:mid]
     arr_mu = arr[mid:n]
-    arr_phi = np.reshape(arr_phi, (nx + 1, ny + 1))[::-1]
-    arr_mu = np.reshape(arr_mu, (nx + 1, ny + 1))[::-1]
+    arr_phi = np.reshape(arr_phi, (ny + 1, nx + 1))
+    arr_mu = np.reshape(arr_mu, (ny + 1, nx + 1))
     return arr_phi, arr_mu
 
 
