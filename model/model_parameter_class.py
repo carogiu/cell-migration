@@ -46,7 +46,7 @@ class ModelParam:
         self.theta = Constant(theta)
         self.Cahn = Constant(Cahn)
         self.Pe = Constant(Pe)
-        self.Ca_star = 10
+        self.Ca_star = 4
         self.Ca = Constant(2 * np.sqrt(2) * Cahn * self.Ca_star / 3)  #0.001?
 
         # Initial perturbation parameters

@@ -43,10 +43,10 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, Ca):
     # inflow condition
     v_i = dolfin.Expression(vi, degree=1)  # vi_x for the inflow
     id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
-                              dim_x=dim_x, tol=1E-12)  # = 1 in the inflow on the left, 0 otherwise
+                              dim_x=dim_x, tol=1E-3)  # = 1 in the inflow on the left, 0 otherwise
     # top bottom condition
     id_tb = dolfin.Expression("((x[1] < tol) or (x[1] > dim_y - tol)) ? 1 : 0", degree=1,
-                              dim_x=dim_x, dim_y=dim_y, tol=1E-12)  # = 1 for top bottom, 0 otherwise
+                              dim_x=dim_x, dim_y=dim_y, tol=0.01)  # = 1 for top bottom, 0 otherwise
     normal = dolfin.FacetNormal(mesh)
     # Problem
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
@@ -90,8 +90,8 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
     # no slip
-    no_slip = dolfin.Constant((0.0, 0.0))
-    bc_v_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries, 3)
+    # no_slip = dolfin.Constant((0.0, 0.0))
+    # bc_v_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries, 3)
     # boundary conditions
     # bcs_flow = [bc_v_left, bc_p_right, bc_v_no_slip]
     bcs_flow = [bc_v_left, bc_p_right]

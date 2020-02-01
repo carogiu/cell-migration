@@ -49,14 +49,10 @@ def main_model(config):
     # save the parameters used
     folder_name = save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave)
     # Compute the model
-    interface_tot = time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave,
-                                   vi, mid,
-                                   folder_name)
+    time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave, vi, mid,
+                   folder_name)
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
-
-    print(interface_tot)
-
     return
 
 
