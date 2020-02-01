@@ -3,6 +3,7 @@ from dolfin import Constant
 import numpy as np
 import time
 import os
+import math
 
 
 ### Class
@@ -46,8 +47,8 @@ class ModelParam:
         self.theta = Constant(theta)
         self.Cahn = Constant(Cahn)
         self.Pe = Constant(Pe)
-        self.Ca_star = 4
-        self.Ca = Constant(2 * np.sqrt(2) * Cahn * self.Ca_star / 3)  #0.001?
+        self.Ca_star = 1
+        self.Ca = Constant(2 * np.sqrt(2) * Cahn * self.Ca_star / 3)  # 0.001?
 
         # Initial perturbation parameters
         self.h_0 = h_0
@@ -76,6 +77,9 @@ def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave):
     :param wave: wave number of the perturbation
     :return: string, name of the folder where files should be saved
     """
+    theta = theta.values()[0]
+    sigma = ((theta - 1) / (theta + 1)) * np.sqrt((theta - 1) / 3) - (1 / (1 + theta)) * math.pow(((theta - 1) / 3),
+                                                                                                  3 / 2)
     t = time.localtime()
     y, m, d = t.tm_year, t.tm_mon, t.tm_mday
     i = 1
@@ -92,8 +96,8 @@ def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave):
     file.write("Model 2 (slip, Ca, Pe, K) \n" + "Parameters: "
                + "\n h= " + str(h) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)
                + "\n nx= " + str(nx) + "\n ny= " + str(ny)
-               + "\n n= " + str(n) + "\n dt= " + str(dt.values()[0]) + "\n theta= " + str(theta.values()[0])
+               + "\n n= " + str(n) + "\n dt= " + str(dt.values()[0]) + "\n theta= " + str(theta)
                + "\n Cahn= " + str(Cahn.values()[0]) + "\n Pe= " + str(Pe.values()[0]) + "\n Ca= " + str(Ca.values()[0])
-               + "\n h_0= " + str(h_0) + "\n wave= " + str(wave))
+               + "\n h_0= " + str(h_0) + "\n wave= " + str(wave) + "\n sigma= " + str(sigma))
     file.close()
     return folder_name

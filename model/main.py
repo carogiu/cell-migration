@@ -7,6 +7,7 @@ from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
+from results.main_results import main_distance_save
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -49,10 +50,12 @@ def main_model(config):
     # save the parameters used
     folder_name = save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave)
     # Compute the model
-    time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave, vi, mid,
+    arr_interface_tot = time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave, vi, mid,
                    folder_name)
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
+
+    main_distance_save(folder_name, arr_interface_tot, n)
     return
 
 
@@ -101,8 +104,10 @@ def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, C
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
     pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
     # save the solutions
-    main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
+    arr_interface = main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
     t_ini_2 = time.time()
+    arr_interface_tot = np.zeros((ny+1, 2, n))
+    arr_interface_tot[:,:,0] = arr_interface
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
     for i in range(1, n):
         t_1 = time.time()
@@ -121,8 +126,9 @@ def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, C
         phi_0, mu_0 = dolfin.split(u0)
 
         # save figure in folder
-        main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name)
+        arr_interface = main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name)
+        arr_interface_tot[:, :, i] = arr_interface
         t_2 = time.time()
         print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
 
-    return
+    return arr_interface_tot

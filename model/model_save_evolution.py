@@ -1,6 +1,7 @@
 ### Packages
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 import dolfin
 
 
@@ -21,11 +22,11 @@ def main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name):
     """
     arr_phi, _ = array_exp_phase(u, mesh, nx, ny)
     arr_ux, arr_uy, arr_p = array_exp_flow(u_flow, mesh, nx, ny)
-    save_fig(arr_phi, 'Phase', i, dim_x, dim_y, folder_name)
-    save_fig(arr_ux, 'Vx', i, dim_x, dim_y, folder_name)
-    save_fig(arr_uy, 'Vy', i, dim_x, dim_y, folder_name)
-    save_fig(arr_p, 'Pressure', i, dim_x, dim_y, folder_name)
-    return
+    arr_interface = save_fig(arr_phi, 'Phase', i, dim_x, dim_y,nx, ny, folder_name)
+    save_fig(arr_ux, 'Vx', i, dim_x, dim_y,nx, ny, folder_name)
+    save_fig(arr_uy, 'Vy', i, dim_x, dim_y,nx, ny, folder_name)
+    save_fig(arr_p, 'Pressure', i, dim_x, dim_y,nx, ny, folder_name)
+    return arr_interface
 
 
 def main_save_fig_interm(u, velocity, pressure, i, mesh, nx, ny, dim_x, dim_y, folder_name):
@@ -49,15 +50,15 @@ def main_save_fig_interm(u, velocity, pressure, i, mesh, nx, ny, dim_x, dim_y, f
     arr_u = np.reshape(arr_u, (2, ny + 1, nx + 1))
     arr_ux = arr_u[0]
     arr_uy = arr_u[1]
-    save_fig(arr_phi, 'Phase', i, dim_x, dim_y, folder_name)
-    save_fig(arr_ux, 'Vx', i, dim_x, dim_y, folder_name)
-    save_fig(arr_uy, 'Vy', i, dim_x, dim_y, folder_name)
-    save_fig(arr_p, 'Pressure', i, dim_x, dim_y, folder_name)
-    return
+    arr_interface = save_fig(arr_phi, 'Phase', i, dim_x, dim_y,nx, ny, folder_name)
+    save_fig(arr_ux, 'Vx', i, dim_x, dim_y,nx, ny, folder_name)
+    save_fig(arr_uy, 'Vy', i, dim_x, dim_y,nx, ny, folder_name)
+    save_fig(arr_p, 'Pressure', i, dim_x, dim_y,nx, ny, folder_name)
+    return arr_interface
 
 
 # to save one array as a heat-map
-def save_fig(arr, name, time, dim_x, dim_y, folder_name):
+def save_fig(arr, name, time, dim_x, dim_y,nx, ny, folder_name):
     """
     To save one array as a heat-map
     :param arr: array
@@ -72,6 +73,12 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
     if name == 'Phase':
         vmin, vmax = -1.1, 1.1
         map = 'seismic'
+        arr_interface = interface(arr, nx, ny, dim_x, dim_y)
+        plt.plot(arr_interface[:,0], arr_interface[:,1], ls=':', c='k')
+        peaks_t, _ = find_peaks(arr_interface[:,0])
+        peaks_b, _ = find_peaks(-arr_interface[:, 0])
+        plt.plot(arr_interface[peaks_t,0], arr_interface[peaks_t, 1], "x", c='g')
+        plt.plot(arr_interface[peaks_b, 0], arr_interface[peaks_b, 1], "x", c='g')
     if name == 'Vy':
         vmin, vmax = -2.5, +2.5
         map = 'jet'
@@ -90,7 +97,10 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
     plt.savefig('results/Figures/' + folder_name + "/" + name + '_' + str(time) + '.png')
     plt.close(fig)
 
-    return
+    if name == 'Phase':
+        return arr_interface
+    else:
+        return
 
 
 #### Dolfin function to explicit array
@@ -133,19 +143,19 @@ def array_exp_phase(u, mesh, nx, ny):
     return arr_phi, arr_mu
 
 
-def interface(arr_phi):
+def interface(arr_phi, nx, ny, dim_x, dim_y):
     """
     Find the interface from the phase (interface : phi=0)
     @param arr_phi: array, values of phi for a given time
     @return: array (should be 1 x ny but needs improvements)
     """
-    n = len(arr_phi)
-    arr_interface = []
-    for i in range(n):
-        for j in range(n):
-            if abs(arr_phi[i, j]) < .2:
-                arr_interface.append([i, j])
+    arr_interface = np.zeros((ny+1, 2))
+    for j in range(ny+1):
+        i = np.argmin(abs(arr_phi[ny-j, :]))
+        arr_interface[ny-j, :] = [i, j]
     arr_interface = np.asarray(arr_interface)
+    arr_interface[:, 0] = (arr_interface[:, 0] - ((nx+1) / 2)) * dim_x / (nx+1)
+    arr_interface[:, 1] = arr_interface[:, 1] * dim_y / (ny+1)
 
     return arr_interface
 
