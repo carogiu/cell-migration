@@ -74,10 +74,10 @@ def save_fig(arr, name, time, dim_x, dim_y, folder_name):
         map = 'seismic'
     if name == 'Vy':
         vmin, vmax = -2.5, +2.5
-        map = 'gist_rainbow'
+        map = 'jet'
     if name == 'Vx':
         vmin, vmax = -4, +6
-        map = 'gist_rainbow'
+        map = 'jet'
     if name == 'Pressure':
         vmin, vmax = 0, dim_x / 2 + 3
         map = 'jet'
@@ -143,7 +143,7 @@ def interface(arr_phi):
     arr_interface = []
     for i in range(n):
         for j in range(n):
-            if abs(arr_phi[i, j]) < .5:
+            if abs(arr_phi[i, j]) < .2:
                 arr_interface.append([i, j])
     arr_interface = np.asarray(arr_interface)
 
