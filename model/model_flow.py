@@ -42,19 +42,24 @@ def problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, Ca):
     theta_p = theta_phi(theta, phi)
     # inflow condition
     v_i = dolfin.Expression(vi, degree=1)  # vi_x for the inflow
-    id_in = dolfin.Expression("x[0] < (- dim_x / 2 + tol) ? 1 : 0", degree=1,
-                              dim_x=dim_x, tol=1E-3)  # = 1 in the inflow on the left, 0 otherwise
+    id_in = dolfin.Expression("exp(-(x[0]+dim_x/2)/(h/2))", degree=1, h=0.05,
+                              dim_x=dim_x)  # = exponential decay for the left boundary
     # top bottom condition
-    id_tb = dolfin.Expression("((x[1] < tol) or (x[1] > dim_y - tol)) ? 1 : 0", degree=1,
-                              dim_x=dim_x, dim_y=dim_y, tol=0.01)  # = 1 for top bottom, 0 otherwise
+    id_tb = dolfin.Expression("exp(-x[1]/(h/2)) + exp((x[1]-dim_y)/(h/2))", degree=1, h=0.05,
+                              dim_y=dim_y)  # = 1 for top bottom, 0 otherwise
     normal = dolfin.FacetNormal(mesh)
     # Problem
     (velocity, pressure) = dolfin.TrialFunctions(w_flow)
     (v_test, p_test) = dolfin.TestFunctions(w_flow)
     a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx - dot(grad(p_test),
-                                                                                      velocity) * dx + pressure * dot(v_test, normal) * id_tb * ds
+                                                                                      velocity) * dx + pressure * dot(
+        v_test, normal) * id_tb * ds
     L_flow = -(1 / Ca) * phi * dot(v_test, grad(mu)) * dx + (id_in * p_test * v_i) * ds
     u_flow = dolfin.Function(w_flow)
+
+    # v_div, _ = dolfin.split(u_flow)
+    # if abs(div(v_div)) >= 10e-8:  # TODO : Correct calcul of div
+    #    raise ValueError('Divergence should not be higher than a certain threshold - Check Physics solutions')
 
     # Solver
     problem_flow = dolfin.LinearVariationalProblem(a_flow, L_flow, u_flow, bcs_flow)
@@ -89,11 +94,7 @@ def boundary_conditions_flow(w_flow, vi, dim_x, dim_y, mesh):
     # pressure out
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
-    # no slip
-    # no_slip = dolfin.Constant((0.0, 0.0))
-    # bc_v_no_slip = dolfin.DirichletBC(w_flow.sub(0), no_slip, boundaries, 3)
-    # boundary conditions
-    # bcs_flow = [bc_v_left, bc_p_right, bc_v_no_slip]
+
     bcs_flow = [bc_v_left, bc_p_right]
 
     return bcs_flow, domain, boundaries
