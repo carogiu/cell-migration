@@ -24,15 +24,22 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
         wave = float(self.wave)
         if abs(x[0]) <= h_0*1.7:
             # random perturbation
-            # dx = np.random.randn(1) * Cahn
+            # h = np.random.randn(1) * Cahn
             # sin perturbation
             h = h_0 * np.sin(x[1] * 2 * np.pi / wave)
-            #h = np.random.randn(1)
             values[0] = np.tanh((x[0] + h) / (Cahn * np.sqrt(2)))  # phi(0)
 
         else:
             values[0] = np.tanh((x[0]) / (Cahn * np.sqrt(2)))
-        values[1] = 0.0  # mu(0)
+
+        if abs(x[0]) <= h_0 * 1.7:
+            h = h_0 * np.sin(x[1] * 2 * np.pi / wave)
+            h_prime = (h_0 * 2 * np.pi * np.cos(x[1] * 2 * np.pi / wave)) / wave
+            phi = np.tanh((x[0] + h) / (Cahn * np.sqrt(2)))
+            values[1] = (Cahn * h / np.sqrt(2)) * ((2*np.pi/wave)**2) * (1-phi**2) + h_prime**2 * phi * (1-phi**2)
+
+        else:
+            values[1] = 0.0  # mu(0) outside of the perturbation
 
     def value_shape(self):
         return (2,)  # dimension 2 (phi,mu)
