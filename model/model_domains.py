@@ -54,7 +54,7 @@ def dom_and_bound(mesh, dim_x, dim_y):
     :return:
     """
     # define interior domain
-    domain = dolfin.MeshFunction("size_t", mesh, 2) # used to define a grid cell (dimension 2)
+    domain = dolfin.MeshFunction("size_t", mesh, 2)  # used to define a grid cell (dimension 2)
     domain.set_all(0)
     # define the subdomains of the boundaries
     dom_left = BD_left(dim_x)
