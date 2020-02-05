@@ -1,31 +1,28 @@
 ### Packages
 import numpy as np
 from scipy.signal import find_peaks
-
-def main_distance_save(folder_name, arr_interface_tot, n):
-    dist = distance_time(arr_interface_tot,n)
-    path = "results/Figures/" + folder_name + "/distance.csv"
-    np.savetxt(path, dist, delimiter=",")
-    return
+import csv
 
 
-def distance_time(arr_interface_tot,n):
-    dist = np.zeros(n)
-    for i in range(n):
-        arr_interface = arr_interface_tot[:, :, i]
-        d = distance_avg(arr_interface)
-        dist[i] = d
-    return dist
-
-
-def distance_avg(arr_interface):
+def all_peaks(arr_interface):
     peaks_t, _ = find_peaks(arr_interface[:, 0])
     peaks_b, _ = find_peaks(-arr_interface[:, 0])
     peaks = np.concatenate((arr_interface[peaks_t, :], arr_interface[peaks_b, :]), axis=0)
     peaks = peaks[peaks[:, 1].argsort()]
-    num_peaks = peaks.shape[0]
-    d = 0
-    for p in range(num_peaks - 1):
-        d = d + abs(peaks[p, 0] - peaks[p + 1, 0])
-    d = d / (num_peaks - 1)
-    return d
+    return peaks
+
+
+def save_peaks(folder_name, arr_interface, h_0):
+    peaks = all_peaks(arr_interface)
+    summits = peaks[:, 0]
+    n = len(summits)
+    instability = np.zeros(n - 1)
+    for i in range(n - 1):
+        d = abs(summits[i] - summits[i + 1])
+        if d >= h_0 * 2 * 0.9:
+            instability[i] = d #- h_0 * 2
+    file_name = "results/Figures/" + folder_name + "/peaks.csv"
+    with open(file_name, 'a') as f:
+        writer = csv.writer(f, delimiter=' ')
+        writer.writerow(instability)
+    return
