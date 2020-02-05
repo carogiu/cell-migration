@@ -27,13 +27,14 @@ class ModelParam:
     Ca :            float, Capillary number (with the phase field correction)
 
     h_0:            float, amplitude of the perturbation
-    wave:           float, wave number of the perturbation
+    k_wave:         float, wave number of the perturbation
 
     mid:            float, time scheme parameter (0.5)
     vi :            Expression, inflow velocity (1)
     """
 
-    def __init__(self, h, dim_x, dim_y, n, dt, theta, Cahn, Pe, h_0, wave):
+    def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float, Pe: int,
+                 h_0: float, k_wave: float) -> None:
         # Grid parameters
         self.h = h
         self.dim_x = dim_x
@@ -52,14 +53,14 @@ class ModelParam:
 
         # Initial perturbation parameters
         self.h_0 = h_0
-        self.wave = wave
+        self.k_wave = k_wave
 
         # Fixed parameters, don't change
         self.mid = Constant(0.5)
         self.vi = "1"
 
 
-def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave):
+def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, k_wave) -> str:
     """
     Saves the parameters in a text files + returns the name of the folder for other saves
     :param h : smallest element of the grid
@@ -74,12 +75,12 @@ def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave):
     :param Pe: Peclet number
     :param Ca : Capillary number
     :param h_0: amplitude of the perturbation
-    :param wave: wave number of the perturbation
+    :param k_wave: wave number of the perturbation
     :return: string, name of the folder where files should be saved
     """
     theta = theta.values()[0]
-    sigma = ((theta - 1) / (theta + 1)) * np.sqrt((theta - 1) / 3) - (1 / (1 + theta)) * math.pow(((theta - 1) / 3),
-                                                                                                  3 / 2)
+    q = np.sqrt((theta - 1) / 3)
+    sigma = q * (theta - 1) / (theta + 1) - q ** 3 / (theta + 1)
     t = time.localtime()
     y, m, d = t.tm_year, t.tm_mon, t.tm_mday
     i = 1
@@ -98,6 +99,6 @@ def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave):
                + "\n nx= " + str(nx) + "\n ny= " + str(ny)
                + "\n n= " + str(n) + "\n dt= " + str(dt.values()[0]) + "\n theta= " + str(theta)
                + "\n Cahn= " + str(Cahn.values()[0]) + "\n Pe= " + str(Pe.values()[0]) + "\n Ca= " + str(Ca.values()[0])
-               + "\n h_0= " + str(h_0) + "\n wave= " + str(wave) + "\n sigma= " + str(sigma))
+               + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave) + "\n sigma= " + str(sigma) + "\n q= " + str(q))
     file.close()
     return folder_name

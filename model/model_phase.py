@@ -11,32 +11,32 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
     Creates the initial condition for the phase
     """
 
-    def __init__(self, Cahn, h_0, wave, **kwargs):
+    def __init__(self, Cahn, h_0, k_wave, **kwargs):
         random.seed(2)  # + MPI.rank(MPI.comm_world))  # need to seed random number
         self.Cahn = Cahn
         self.h_0 = h_0
-        self.wave = wave
+        self.k_wave = k_wave
         super().__init__(**kwargs)
 
     def eval(self, values, x):
         Cahn = float(self.Cahn)
         h_0 = float(self.h_0)
-        wave = float(self.wave)
-        if abs(x[0]) <= h_0*1.7:
+        k_wave = float(self.k_wave)
+        if abs(x[0]) <= h_0 * 1.5:
             # random perturbation
             # h = np.random.randn(1) * Cahn
             # sin perturbation
-            h = h_0 * np.sin(x[1] * 2 * np.pi / wave)
-            values[0] = np.tanh((x[0] + h) / (Cahn * np.sqrt(2)))  # phi(0)
+            dx = h_0 * np.sin(x[1] * k_wave)
+            values[0] = np.tanh((x[0] + dx) / (Cahn * np.sqrt(2)))  # phi(0)
 
         else:
             values[0] = np.tanh((x[0]) / (Cahn * np.sqrt(2)))
 
-        if abs(x[0]) <= h_0 * 1.7:
-            h = h_0 * np.sin(x[1] * 2 * np.pi / wave)
-            h_prime = (h_0 * 2 * np.pi * np.cos(x[1] * 2 * np.pi / wave)) / wave
-            phi = np.tanh((x[0] + h) / (Cahn * np.sqrt(2)))
-            values[1] = (Cahn * h / np.sqrt(2)) * ((2*np.pi/wave)**2) * (1-phi**2) + h_prime**2 * phi * (1-phi**2)
+        if abs(x[0]) <= h_0 * 1.5:
+            dx = h_0 * np.sin(x[1] * k_wave)
+            dx_prime = h_0 * k_wave * np.cos(x[1] * k_wave)
+            phi = np.tanh((x[0] + dx) / (Cahn * np.sqrt(2)))
+            values[1] = (Cahn * dx / np.sqrt(2)) * (k_wave ** 2) * (1 - phi ** 2) + dx_prime ** 2 * phi * (1 - phi ** 2)
 
         else:
             values[1] = 0.0  # mu(0) outside of the perturbation
@@ -57,14 +57,14 @@ def space_phase(mesh):
     return space_ME
 
 
-def initiate_phase(space_ME, Cahn, h_0, wave):
+def initiate_phase(space_ME, Cahn, h_0, k_wave):
     """
     Initiate the phase : from the function space, creates trial functions and test functions, and applies the
     initial conditions
     :param space_ME: Function space
     :param Cahn: float, Cahn number
     :param h_0: float, amplitude of the sin
-    :param wave: float, wave number of the sin
+    :param k_wave: float, wave number of the sin
     :return: Functions
     """
     du = dolfin.TrialFunction(space_ME)
@@ -73,7 +73,7 @@ def initiate_phase(space_ME, Cahn, h_0, wave):
     u = dolfin.Function(space_ME)  # current solution u
     u0 = dolfin.Function(space_ME)  # solution from previous converged step u0
 
-    u_init = InitialConditions(degree=1, Cahn=Cahn, h_0=h_0, wave=wave)
+    u_init = InitialConditions(degree=1, Cahn=Cahn, h_0=h_0, k_wave=k_wave)
     u.interpolate(u_init)
     u0.interpolate(u_init)
 

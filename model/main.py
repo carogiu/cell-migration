@@ -7,7 +7,7 @@ from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
-from results.main_results import main_distance_save
+from results.main_results import save_peaks
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -35,7 +35,7 @@ def main_model(config):
     Ca = config.Ca
     # Initial perturbation parameters
     h_0 = config.h_0
-    wave = config.wave
+    k_wave = config.k_wave
     # Dimensionless parameters
     vi = config.vi
     mid = config.mid
@@ -48,14 +48,14 @@ def main_model(config):
     # print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')
     t1 = time.time()
     # save the parameters used
-    folder_name = save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, wave)
+    folder_name = save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, k_wave)
     # Compute the model
-    arr_interface_tot = time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave, vi, mid,
+    time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, k_wave, vi, mid,
                    folder_name)
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 
-    main_distance_save(folder_name, arr_interface_tot, n)
+    # main_distance_save(folder_name, arr_interface_tot, n)
     return
 
 
@@ -75,7 +75,7 @@ def mesh_from_dim(nx, ny, dim_x, dim_y):
     return mesh
 
 
-def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, wave, vi, mid,
+def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, k_wave, vi, mid,
                    folder_name):
     """
     :param mesh: dolfin mesh
@@ -92,22 +92,21 @@ def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, C
     :param Pe: float, Peclet number
     :param Ca: float, Capillary number
     :param h_0: float, amplitude of the perturbation
-    :param wave: float, wave number of the perturbation
+    :param k_wave: float, wave number of the perturbation
     :param vi: Expression, initial velocity
     :param mid: float, time scheme Crank Nicholson
     :param folder_name: string, name of the folder where files should be saved
     :return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
     """
     t_ini_1 = time.time()
-    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, Cahn, h_0, wave)
+    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, Cahn, h_0, k_wave)
     # initiate the velocity and the pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    pressure = dolfin.Expression("dim_x*(1/2 - x[0]/dim_x)", degree=1, dim_x=dim_x)
+    pressure = dolfin.Expression("dim_x/2 - x[0]", degree=1, dim_x=dim_x)
     # save the solutions
     arr_interface = main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
+    save_peaks(folder_name, arr_interface, h_0)
     t_ini_2 = time.time()
-    arr_interface_tot = np.zeros((ny+1, 2, n))
-    arr_interface_tot[:,:,0] = arr_interface
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
     for i in range(1, n):
         t_1 = time.time()
@@ -127,8 +126,8 @@ def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, C
 
         # save figure in folder
         arr_interface = main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name)
-        arr_interface_tot[:, :, i] = arr_interface
+        save_peaks(folder_name, arr_interface, h_0)
         t_2 = time.time()
         print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
 
-    return arr_interface_tot
+    return
