@@ -2,6 +2,7 @@ import random
 import dolfin
 import numpy as np
 from ufl import dot, grad
+import ufl
 from model.model_domains import dom_and_bound
 
 
@@ -46,7 +47,7 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
 
 
 ### Main functions
-def space_phase(mesh):
+def space_phase(mesh: dolfin.cpp.generation.RectangleMesh) -> dolfin.function.functionspace.FunctionSpace:
     """
     Returns the function space for the phase and mu
     :param mesh: dolfin mesh
@@ -57,18 +58,18 @@ def space_phase(mesh):
     return space_ME
 
 
-def initiate_phase(space_ME, Cahn, h_0, k_wave):
+def initiate_phase(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: float, h_0: float, k_wave=float):
     """
     Initiate the phase : from the function space, creates trial functions and test functions, and applies the
     initial conditions
     :param space_ME: Function space
-    :param Cahn: float, Cahn number
-    :param h_0: float, amplitude of the sin
-    :param k_wave: float, wave number of the sin
+    :param Cahn: Cahn number
+    :param h_0: amplitude of the sin
+    :param k_wave: wave number of the sin
     :return: Functions
     """
-    du = dolfin.TrialFunction(space_ME)
-    phi_test, mu_test = dolfin.TestFunctions(space_ME)
+    du = dolfin.TrialFunction(V=space_ME)
+    phi_test, mu_test = dolfin.TestFunctions(V=space_ME)
 
     u = dolfin.Function(space_ME)  # current solution u
     u0 = dolfin.Function(space_ME)  # solution from previous converged step u0
@@ -83,8 +84,13 @@ def initiate_phase(space_ME, Cahn, h_0, k_wave):
     return phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0
 
 
-def problem_phase_with_epsilon(space_ME, dim_x, dim_y, mesh, phi_test, mu_test, du, u, phi, mu, phi_0, mu_0, velocity,
-                               mid, dt, Pe, Cahn):
+def problem_phase_with_epsilon(space_ME: dolfin.function.functionspace.FunctionSpace, dim_x: int, dim_y: int,
+                               mesh: dolfin.cpp.generation.RectangleMesh, phi_test: ufl.indexed.Indexed,
+                               mu_test: ufl.indexed.Indexed, du: dolfin.function.argument.Argument,
+                               u: dolfin.function.function.Function, phi: ufl.indexed.Indexed, mu: ufl.indexed.Indexed,
+                               phi_0: ufl.indexed.Indexed, mu_0: ufl.indexed.Indexed,
+                               velocity: dolfin.function.function.Function, mid: float, dt: float, Pe: float,
+                               Cahn: float) -> [ufl.form.Form, ufl.form.Form, dolfin.function.function.Function, list]:
     """
     Creates the variational problem
     :param space_ME: function space
@@ -100,16 +106,16 @@ def problem_phase_with_epsilon(space_ME, dim_x, dim_y, mesh, phi_test, mu_test, 
     :param phi_0: Function, previous solution
     :param mu_0: Function, previous solution
     :param velocity: Expression, velocity of the flow for each point of the mesh
-    :param mid: float, for the time scheme
-    :param dt: float, time step
-    :param Pe: float, Peclet number
-    :param Cahn: float, Cahn number
+    :param mid: for the time scheme
+    :param dt: time step
+    :param Pe: Peclet number
+    :param Cahn: Cahn number
     :return: Functions
     """
     # intermediate mu
-    mu_mid = mu_calc(mid, mu, mu_0)
+    mu_mid = mu_calc(mid=mid, mu=mu, mu_0=mu_0)
     # define the domain
-    bcs_phase, domain = boundary_conditions_phase(space_ME, dim_x, dim_y, mesh)
+    bcs_phase, domain = boundary_conditions_phase(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
     dx = dolfin.dx(subdomain_data=domain)
     # variational problem
     L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(
@@ -117,22 +123,23 @@ def problem_phase_with_epsilon(space_ME, dim_x, dim_y, mesh, phi_test, mu_test, 
     L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (Cahn ** 2) * dot(grad(phi), grad(mu_test)) * dx
     F = L0 + L1
 
-    J = dolfin.derivative(F, u, du)
+    J = dolfin.derivative(form=F, u=u, du=du)
 
     return F, J, u, bcs_phase
 
 
-def solve_phase(F, J, u, bcs_phase):
+def solve_phase(F: ufl.form.Form, J: ufl.form.Form, u: dolfin.function.function.Function,
+                bcs_phase: list) -> dolfin.function.function.Function:
     """
     Solves the variational problem
     @param F: Function (residual)
     @param J: Function (Jacobian)
     @param u: Function
-    @param bcs_phase: list, boundary conditions
+    @param bcs_phase: boundary conditions
     @return: Function
     """
     # Problem
-    problem_phase = dolfin.NonlinearVariationalProblem(F, u, bcs_phase, J)
+    problem_phase = dolfin.NonlinearVariationalProblem(F=F, u=u, bcs=bcs_phase, J=J)
     solver_phase = dolfin.NonlinearVariationalSolver(problem_phase)
 
     # Solver
@@ -148,7 +155,8 @@ def solve_phase(F, J, u, bcs_phase):
 
 
 ### BOUNDARIES### CREATE BOUNDARIES
-def boundary_conditions_phase(space_ME, dim_x, dim_y, mesh):
+def boundary_conditions_phase(space_ME: dolfin.function.functionspace.FunctionSpace, dim_x: int, dim_y: int,
+                              mesh: dolfin.cpp.generation.RectangleMesh) -> [list, dolfin.cpp.mesh.MeshFunctionSizet]:
     """
     Creates the boundary conditions  : no slip condition, velocity inflow, pressure out
     :param space_ME: Function space
@@ -157,7 +165,7 @@ def boundary_conditions_phase(space_ME, dim_x, dim_y, mesh):
     :param mesh: mesh
     :return: array of boundary conditions
     """
-    domain, boundaries = dom_and_bound(mesh, dim_x, dim_y)
+    domain, boundaries = dom_and_bound(mesh=mesh, dim_x=dim_x, dim_y=dim_y)
     # boundary conditions for the phase
     bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), boundaries, 1)  # phi = -1 on the left (1)
     bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), boundaries, 2)  # phi = +1 on the right (2)
@@ -170,7 +178,7 @@ def boundary_conditions_phase(space_ME, dim_x, dim_y, mesh):
 
 
 ### Utilitarian functions
-def mu_calc(mid, mu, mu_0):
+def mu_calc(mid: float, mu: ufl.indexed.Indexed, mu_0: ufl.indexed.Indexed):
     """
     Time discretization (Crank Nicholson method)
     :param mid: float, time scheme

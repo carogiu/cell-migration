@@ -1,9 +1,7 @@
 ### Packages
-from dolfin import Constant
 import numpy as np
 import time
 import os
-import math
 
 
 ### Class
@@ -33,37 +31,42 @@ class ModelParam:
     vi :            Expression, inflow velocity (1)
     """
 
-    def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float, Pe: int,
+    def __init__(self, grid_resolution: int, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float,
+                 Pe: int,
                  h_0: float, k_wave: float) -> None:
         # Grid parameters
-        self.h = h
+        self.grid_resolution = grid_resolution
         self.dim_x = dim_x
         self.dim_y = dim_y
-        self.nx = int(dim_x / h)
-        self.ny = int(dim_y / h)
+        self.nx = grid_resolution
+        self.ny = grid_resolution
+        self.h_x = dim_x / grid_resolution
+        self.h_y = dim_y / grid_resolution
         # Time parameters
         self.n = n
-        self.dt = Constant(dt)
+        self.dt = dt
         # Model parameters
-        self.theta = Constant(theta)
-        self.Cahn = Constant(Cahn)
-        self.Pe = Constant(Pe)
+        self.theta = theta
+        self.Cahn = Cahn
+        self.Pe = Pe
         self.Ca_star = 1
-        self.Ca = Constant(2 * np.sqrt(2) * Cahn * self.Ca_star / 3)  # 0.001?
+        self.Ca = 2 * np.sqrt(2) * Cahn * self.Ca_star / 3
 
         # Initial perturbation parameters
         self.h_0 = h_0
         self.k_wave = k_wave
 
         # Fixed parameters, don't change
-        self.mid = Constant(0.5)
+        self.mid = 0.5
         self.vi = "1"
 
 
-def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, k_wave) -> str:
+def save_param(h_x: float, h_y: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float,
+               Cahn: float, Pe: float, Ca: float, h_0: float, k_wave: float) -> str:
     """
     Saves the parameters in a text files + returns the name of the folder for other saves
-    :param h : smallest element of the grid
+    :param h_x : smallest element of the grid in the direction x
+    :param h_y : smallest element of the grid in the direction y
     :param dim_x: dimension in the direction of x
     :param dim_y: dimension in the direction of y
     :param nx: number of mesh element in direction x
@@ -78,7 +81,6 @@ def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, k_wave)
     :param k_wave: wave number of the perturbation
     :return: string, name of the folder where files should be saved
     """
-    theta = theta.values()[0]
     q = np.sqrt((theta - 1) / 3)
     sigma = q * (theta - 1) / (theta + 1) - q ** 3 / (theta + 1)
     t = time.localtime()
@@ -93,12 +95,13 @@ def save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, k_wave)
         new_path = r'results/Figures/' + folder_name
 
     os.makedirs(new_path)
+    os.makedirs(new_path + '/Checks')
     file = open("results/Figures/" + folder_name + "/param.txt", "w")
     file.write("Model 2 (slip, Ca, Pe, K) \n" + "Parameters: "
-               + "\n h= " + str(h) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)
+               + "\n h_x= " + str(h_x) + "\n h_y= " + str(h_y) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)
                + "\n nx= " + str(nx) + "\n ny= " + str(ny)
-               + "\n n= " + str(n) + "\n dt= " + str(dt.values()[0]) + "\n theta= " + str(theta)
-               + "\n Cahn= " + str(Cahn.values()[0]) + "\n Pe= " + str(Pe.values()[0]) + "\n Ca= " + str(Ca.values()[0])
+               + "\n n= " + str(n) + "\n dt= " + str(dt) + "\n theta= " + str(theta)
+               + "\n Cahn= " + str(Cahn) + "\n Pe= " + str(Pe) + "\n Ca= " + str(Ca)
                + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave) + "\n sigma= " + str(sigma) + "\n q= " + str(q))
     file.close()
     return folder_name

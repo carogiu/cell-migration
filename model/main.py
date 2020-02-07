@@ -1,13 +1,12 @@
 ### Import
 import dolfin
 import time
-import numpy as np
 
 from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
-from results.main_results import save_peaks
+from results.main_results import save_peaks, check_div_v  # , check_hydro
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -23,7 +22,7 @@ def main_model(config):
     # Retrieve parameters
 
     # Grid parameters
-    h = config.h
+    h_x, h_y = config.h_x, config.h_y
     nx, ny = config.nx, config.ny
     dim_x, dim_y = config.dim_x, config.dim_y
     # Time parameters
@@ -34,34 +33,34 @@ def main_model(config):
     Pe = config.Pe
     Ca = config.Ca
     # Initial perturbation parameters
-    h_0 = config.h_0
-    k_wave = config.k_wave
+    h_0, k_wave = config.h_0, config.k_wave
     # Dimensionless parameters
     vi = config.vi
     mid = config.mid
 
     # Create Mesh
-    mesh = mesh_from_dim(nx, ny, dim_x, dim_y)
-    space_ME = space_phase(mesh)
-    w_flow = space_flow(mesh)
+    mesh = mesh_from_dim(nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
+    space_ME = space_phase(mesh=mesh)
+    w_flow = space_flow(mesh=mesh)
 
-    # print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')
+    print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')
     t1 = time.time()
     # save the parameters used
-    folder_name = save_param(h, dim_x, dim_y, nx, ny, n, dt, theta, Cahn, Pe, Ca, h_0, k_wave)
+    folder_name = save_param(h_x=h_x, h_y=h_y, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, n=n, dt=dt, theta=theta,
+                             Cahn=Cahn, Pe=Pe, Ca=Ca, h_0=h_0, k_wave=k_wave)
     # Compute the model
-    time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, k_wave, vi, mid,
-                   folder_name)
+    time_evolution(mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
+                   theta=theta, Cahn=Cahn, Pe=Pe, Ca=Ca, h_0=h_0, k_wave=k_wave, vi=vi, mid=mid,
+                   folder_name=folder_name)
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 
-    # main_distance_save(folder_name, arr_interface_tot, n)
     return
 
 
 ### Initiate Mesh
 
-def mesh_from_dim(nx, ny, dim_x, dim_y):
+def mesh_from_dim(nx: int, ny: int, dim_x: int, dim_y: int) -> dolfin.cpp.generation.RectangleMesh:
     """
     Creates mesh of dimension nx, ny of dimensions dim_x x dim_y
 
@@ -75,58 +74,73 @@ def mesh_from_dim(nx, ny, dim_x, dim_y):
     return mesh
 
 
-def time_evolution(mesh, nx, ny, dim_x, dim_y, dt, n, space_ME, w_flow, theta, Cahn, Pe, Ca, h_0, k_wave, vi, mid,
-                   folder_name):
+def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, dim_x: int, dim_y: int, dt: float,
+                   n: int, space_ME: dolfin.function.functionspace.FunctionSpace,
+                   w_flow: dolfin.function.functionspace.FunctionSpace, theta: float, Cahn: float, Pe: float, Ca: float,
+                   h_0: float, k_wave: float, vi: str, mid: float, folder_name: str) -> None:
     """
     :param mesh: dolfin mesh
-    :param nx: int, grid dimension
-    :param ny: int, grid dimension
-    :param dim_y: int, dimension in the direction of y
-    :param dim_x: int, dimension in the direction of x
-    :param n: int, number of time steps
-    :param dt: float, time step
+    :param nx: grid dimension
+    :param ny: grid dimension
+    :param dim_y: dimension in the direction of y
+    :param dim_x: dimension in the direction of x
+    :param n: number of time steps
+    :param dt: time step
     :param space_ME: Function space, for the phase
     :param w_flow: Function space, for the flow
-    :param theta: float, friction ratio
-    :param Cahn: float, Cahn number
-    :param Pe: float, Peclet number
-    :param Ca: float, Capillary number
-    :param h_0: float, amplitude of the perturbation
-    :param k_wave: float, wave number of the perturbation
-    :param vi: Expression, initial velocity
-    :param mid: float, time scheme Crank Nicholson
-    :param folder_name: string, name of the folder where files should be saved
-    :return: arrays, contain all the values of vx, vy, p and phi for all the intermediate times
+    :param theta: friction ratio
+    :param Cahn: Cahn number
+    :param Pe: Peclet number
+    :param Ca: Capillary number
+    :param h_0: amplitude of the perturbation
+    :param k_wave: wave number of the perturbation
+    :param vi: Initial velocity
+    :param mid: time scheme Crank Nicholson
+    :param folder_name: name of the folder where files should be saved
+    :return:
     """
     t_ini_1 = time.time()
-    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME, Cahn, h_0, k_wave)
+    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0,
+                                                                        k_wave=k_wave)
     # initiate the velocity and the pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    pressure = dolfin.Expression("dim_x/2 - x[0]", degree=1, dim_x=dim_x)
+    pressure = dolfin.Expression("x[0]> 0 ? theta*(dim_x/2 - x[0]) : theta*dim_x/2 - x[0]", degree=1, dim_x=dim_x,
+                                 theta=theta)
     # save the solutions
-    arr_interface = main_save_fig_interm(u, velocity, pressure, 0, mesh, nx, ny, dim_x, dim_y, folder_name)
-    save_peaks(folder_name, arr_interface, h_0)
+    arr_interface = main_save_fig_interm(u=u, velocity=velocity, pressure=pressure, i=0, mesh=mesh, nx=nx, ny=ny,
+                                         dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, theta=theta)
+    save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
     t_ini_2 = time.time()
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
     for i in range(1, n):
         t_1 = time.time()
 
         # First solve the flow and the pressure with phi_0 and mu_0
-        u_flow = problem_coupled(mesh, dim_x, dim_y, w_flow, phi, mu, vi, theta, Ca)
-        velocity, pressure = dolfin.split(u_flow)
+        u_flow = problem_coupled(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi, mu=mu, vi=vi, theta=theta,
+                                 Ca=Ca)
+        velocity, pressure = u_flow.split()
+
+        # See div(v)
+        check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
+                    folder_name=folder_name)
+        # See hydrodynamics
+        # check_hydro(velocity, pressure, u, theta, mesh, nx, ny, dim_x, dim_y, i, Ca, folder_name)
 
         # Then solve the phase to get phi and mu (time n+1)
-        F, J, u, bcs_phase = problem_phase_with_epsilon(space_ME, dim_x, dim_y, mesh, phi_test, mu_test, du, u, phi, mu,
-                                                        phi_0, mu_0, velocity, mid, dt, Pe, Cahn)
-        u = solve_phase(F, J, u, bcs_phase)  # solve u for the next time step
+        F, J, u, bcs_phase = problem_phase_with_epsilon(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh,
+                                                        phi_test=phi_test, mu_test=mu_test, du=du, u=u, phi=phi, mu=mu,
+                                                        phi_0=phi_0, mu_0=mu_0, velocity=velocity, mid=mid, dt=dt,
+                                                        Pe=Pe, Cahn=Cahn)
+        u = solve_phase(F=F, J=J, u=u, bcs_phase=bcs_phase)  # solve u for the next time step
 
         # Finally update the value of phi_0 and u_0
         u0.vector()[:] = u.vector()
         phi_0, mu_0 = dolfin.split(u0)
 
         # save figure in folder
-        arr_interface = main_save_fig(u, u_flow, i, mesh, nx, ny, dim_x, dim_y, folder_name)
-        save_peaks(folder_name, arr_interface, h_0)
+        arr_interface = main_save_fig(u=u, u_flow=u_flow, i=i, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
+                                      folder_name=folder_name, theta=theta)
+        save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
         t_2 = time.time()
         print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
 
