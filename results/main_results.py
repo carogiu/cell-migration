@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import csv
 import dolfin
+from pylab import *
 
 # from model.model_flow import theta_phi
+from model.model_flow import theta_phi
 from model.model_save_evolution import array_exp_velocity, arr_exp_pressure
 
 
@@ -33,7 +35,7 @@ def save_peaks(folder_name: str, arr_interface: np.ndarray, h_0: float) -> None:
     peaks = all_peaks(arr_interface=arr_interface)
     summits = peaks[:, 0]
     n = len(summits)
-    instability = np.zeros(n - 1)
+    instability = np.zeros(n)  # - 1)
     for i in range(n - 1):
         d = abs(summits[i] - summits[i + 1])
         if d >= h_0:
@@ -59,9 +61,31 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
     :param folder_name: name of the folder where to save the files
     :return:
     """
-    h_x = dim_x / nx
-    h_y = dim_y / ny
-    arr_ux, arr_uy = array_exp_velocity(velocity=velocity, mesh=mesh, nx=nx, ny=ny)
+    # h_x = dim_x / nx
+    # h_y = dim_y / ny
+    # arr_ux, arr_uy = array_exp_velocity(velocity=velocity, mesh=mesh, nx=nx, ny=ny)
+
+    fig = plt.figure()
+    p = dolfin.plot(dolfin.div(velocity))
+    p.set_clim(-.1, .1)
+    fig.colorbar(p, boundaries=[-.1, .1], cmap='jet')
+    plt.title('Divergence for t=' + str(time))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')
+    plt.close(fig)
+
+    """
+    for collection in p.collections:
+        for path in collection.get_paths():
+            print(path.to_polygons())
+    """
+
+    """
     arr_div = np.zeros((nx, ny))
     for i in range(nx - 1):
         for j in range(ny - 1):
@@ -69,19 +93,21 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
             arr_div[i, j] = divergence
 
     fig = plt.figure()
-    plt.imshow(arr_div, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=-2, vmax=2)
+    plt.imshow(arr_div, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=-0.5, vmax=0.5)
     plt.colorbar()
     plt.title('Divergence for t=' + str(time))
     plt.xlabel('x')
     plt.ylabel('y')
     plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')
     plt.close(fig)
+    """
     return
 
 
 def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.function.function.Function,
-                theta: dolfin.Constant, mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, dim_x: int,
-                dim_y: int, time: int, folder_name: str) -> None:
+                u: dolfin.function.function.Function, theta: dolfin.Constant, Ca: int,
+                mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, dim_x: int, dim_y: int, time: int,
+                folder_name: str) -> None:
     """
     Check the hydrodynamic relation far from the interface
     :param velocity: dolfin function for the velocity
@@ -103,6 +129,39 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
     arr_ux, _ = array_exp_velocity(velocity=velocity, mesh=mesh, nx=nx, ny=ny)
     arr_ux = arr_ux[:ny + 1, :nx]
 
+    phi, mu = u.split()
+    theta_p = theta_phi(theta, phi)
+    hydro = dolfin.grad(pressure) + (1 / Ca) * phi * dolfin.grad(mu) + theta_p * velocity
+
+    fig = plt.figure()
+    plot_hydro_x = dolfin.plot(hydro[0])
+    plot_hydro_x.set_clim(-.1, .1)
+    fig.colorbar(plot_hydro_x, boundaries=[-.1, .1], cmap='jet')
+    plt.title('Hydro_x for t=' + str(time))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_x_" + str(time) + '.png')
+    plt.close(fig)
+
+    fig = plt.figure()
+    plot_hydro_y = dolfin.plot(hydro[1])
+    plot_hydro_y.set_clim(-.1, .1)
+    fig.colorbar(plot_hydro_y, boundaries=[-.1, .1], cmap='jet')
+    plt.title('Hydro_y for t=' + str(time))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_y_" + str(time) + '.png')
+    plt.close(fig)
+
+    """
     arr_hydro = np.zeros((ny + 1, ny))
 
     for i in range(nx - 1):
@@ -119,4 +178,5 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
     plt.ylabel('y')
     plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_" + str(time) + '.png')
     plt.close(fig)
+    """
     return

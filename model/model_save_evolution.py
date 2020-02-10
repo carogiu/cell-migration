@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import dolfin
+import fenics
+from pylab import *
 
 
 ### Main save
@@ -25,6 +27,69 @@ def main_save_fig(u: dolfin.function.function.Function, u_flow: dolfin.function.
     """
     arr_phi, _ = array_exp_phase(u=u, mesh=mesh, nx=nx, ny=ny)
     arr_ux, arr_uy, arr_p = array_exp_flow(u_flow=u_flow, mesh=mesh, nx=nx, ny=ny)
+    velocity, pressure = u_flow.split()
+    phi, _ = u.split()
+
+    # Test pressure
+    fig = plt.figure()
+    pr = dolfin.plot(object=pressure, cmap='jet')
+    pr.set_clim(0.0, dim_x / 2 * (theta + 1))
+    fig.colorbar(pr, boundaries=[0, dim_x / 2 * (theta + 1)], cmap='jet')
+    plt.title('Pressure for t=' + str(i))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Pressure2_" + str(i) + '.png')
+    plt.close(fig)
+
+    # Test vx
+    fig = plt.figure()
+    plot_vx = dolfin.plot(object=velocity[0], cmap='jet')
+    plot_vx.set_clim(0.0, 2)
+    fig.colorbar(plot_vx, boundaries=[0, 2], cmap='jet')
+    plt.title('Vx for t=' + str(i))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Vx2_" + str(i) + '.png')
+    plt.close(fig)
+
+    # Test vy
+    fig = plt.figure()
+    plot_vy = dolfin.plot(object=velocity[1], cmap='jet')
+    plot_vy.set_clim(-1, 1)
+    fig.colorbar(plot_vy, boundaries=[-1, 1], cmap='jet')
+    plt.title('Vy for t=' + str(i))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Vy2_" + str(i) + '.png')
+    plt.close(fig)
+
+    # Test phi
+    fig = plt.figure()
+    plot_phi = dolfin.plot(object=phi, cmap='seismic')
+    plot_phi.set_clim(-1.1, 1.1)
+    fig.colorbar(plot_phi, boundaries=[-1.1, 1.1], cmap='seismic')
+    plt.title('Phi for t=' + str(i))
+    ax = axes([0, 0, 1, 1], frameon=False)
+    ax.set_axis_off()
+    ax.set_xlim(-dim_x / 2, dim_x / 2)
+    ax.set_ylim(0, dim_y)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('results/Figures/' + folder_name + "/Phi2_" + str(i) + '.png')
+    plt.close(fig)
+
     arr_interface = save_fig(arr=arr_phi, name='Phase', time=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, theta=theta,
                              folder_name=folder_name)
     save_fig(arr=arr_ux, name='Vx', time=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, theta=theta,
@@ -96,10 +161,10 @@ def save_fig(arr: np.ndarray, name: str, time: int, dim_x: int, dim_y: int, nx: 
         plt.plot(arr_interface[peaks_t, 0], arr_interface[peaks_t, 1], "x", c='g')
         plt.plot(arr_interface[peaks_b, 0], arr_interface[peaks_b, 1], "x", c='g')
     if name == 'Vy':
-        v_min, v_max = -2.5, +2.5
+        v_min, v_max = -1, +1
         color_map = 'jet'
     if name == 'Vx':
-        v_min, v_max = -4, +6
+        v_min, v_max = 0, +2
         color_map = 'jet'
     if name == 'Pressure':
         v_min, v_max = 0, dim_x / 2 * (theta + 1)

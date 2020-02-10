@@ -6,7 +6,7 @@ from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
-from results.main_results import save_peaks, check_div_v  # , check_hydro
+from results.main_results import save_peaks, check_div_v, check_hydro
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -124,7 +124,8 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
                     folder_name=folder_name)
         # See hydrodynamics
-        # check_hydro(velocity, pressure, u, theta, mesh, nx, ny, dim_x, dim_y, i, Ca, folder_name)
+        check_hydro(velocity=velocity, pressure=pressure, u=u, theta=theta, Ca=Ca, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x,
+                    dim_y=dim_y, folder_name=folder_name, time=i)
 
         # Then solve the phase to get phi and mu (time n+1)
         F, J, u, bcs_phase = problem_phase_with_epsilon(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh,
