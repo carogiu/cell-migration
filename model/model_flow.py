@@ -52,7 +52,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
 
     # Problem
     a_flow = theta_p * dot(velocity, v_test) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx
-    L_flow = -(1 / Ca) * phi * dot(v_test, grad(mu)) * dx + p_test * ds(1)
+    L_flow = p_test * ds(1) - (1 / Ca) * phi * dot(v_test, grad(mu)) * dx
     u_flow = dolfin.Function(w_flow)
 
     # v_div, _ = dolfin.split(u_flow)
@@ -94,8 +94,12 @@ def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace
     # pressure out
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
-
-    bcs_flow = [bc_v_left, bc_p_right]
+    # test top-bottom
+    v_top_bottom = dolfin.Expression((vi, "0.0"), degree=2)
+    bc_v_top = dolfin.DirichletBC(w_flow.sub(0), v_top_bottom, boundaries, 3)
+    bc_v_bot = dolfin.DirichletBC(w_flow.sub(0), v_top_bottom, boundaries, 4)
+    # boundary conditions
+    bcs_flow = [bc_v_left, bc_p_right, bc_v_top, bc_v_bot]
 
     return bcs_flow, domain, boundaries
 
