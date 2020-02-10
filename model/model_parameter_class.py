@@ -57,7 +57,7 @@ class ModelParam:
         self.k_wave = k_wave
 
         # Fixed parameters, don't change
-        self.mid = 0.5
+        self.mid = 1  # 0.5
         self.vi = "1"
 
 
