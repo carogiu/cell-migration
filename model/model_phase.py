@@ -113,14 +113,20 @@ def problem_phase_with_epsilon(space_ME: dolfin.function.functionspace.FunctionS
     :return: Functions
     """
     # intermediate mu
-    mu_mid = mu_calc(mid=mid, mu=mu, mu_0=mu_0)
+    # mu_mid = mu_calc(mid=mid, mu=mu, mu_0=mu_0)
     # define the domain
     bcs_phase, domain = boundary_conditions_phase(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
     dx = dolfin.dx(subdomain_data=domain)
     # variational problem
-    L0 = phi * phi_test * dx - phi_0 * phi_test * dx + dt * phi_test * dot(velocity, grad(
-        phi_0)) * dx + dt * (1 / Pe) * dot(grad(mu_mid), grad(phi_test)) * dx
-    L1 = mu * mu_test * dx - (phi ** 3 - phi) * mu_test * dx - (Cahn ** 2) * dot(grad(phi), grad(mu_test)) * dx
+
+    L0 = (phi * phi_test - phi_0 * phi_test +
+          dt * mid * (dot(grad(mu), grad(phi_test))) / Pe +
+          dt * mid * phi_test * dot(velocity, grad(phi)))*dx
+          #dt * (1 - mid) * (dot(grad(mu_0), grad(phi_test))) / Pe +
+          #dt * (1 - mid) * phi_test * dot(velocity, grad(phi_0))) * dx
+
+    L1 = (mu * mu_test - (phi ** 3 - phi) * mu_test - (Cahn ** 2) * dot(grad(phi), grad(mu_test))) * dx
+
     F = L0 + L1
 
     J = dolfin.derivative(form=F, u=u, du=du)
