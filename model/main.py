@@ -22,7 +22,7 @@ def main_model(config):
     # Retrieve parameters
 
     # Grid parameters
-    h_x, h_y = config.h_x, config.h_y
+    h = config.h
     nx, ny = config.nx, config.ny
     dim_x, dim_y = config.dim_x, config.dim_y
     # Time parameters
@@ -46,7 +46,7 @@ def main_model(config):
     print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')
     t1 = time.time()
     # save the parameters used
-    folder_name = save_param(h_x=h_x, h_y=h_y, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, n=n, dt=dt, theta=theta,
+    folder_name = save_param(h=h, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, n=n, dt=dt, theta=theta,
                              Cahn=Cahn, Pe=Pe, Ca=Ca, h_0=h_0, k_wave=k_wave)
     # Compute the model
     time_evolution(mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
@@ -115,6 +115,31 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
     for i in range(1, n):
         t_1 = time.time()
 
+        # First find phi(n+1) and mu(n+1) with the previous velocity
+
+        F, J, u, bcs_phase = problem_phase_with_epsilon(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh,
+                                                        phi_test=phi_test, mu_test=mu_test, du=du, u=u, phi=phi, mu=mu,
+                                                        phi_0=phi_0, mu_0=mu_0, velocity=velocity, mid=mid, dt=dt,
+                                                        Pe=Pe, Cahn=Cahn)
+        u = solve_phase(F=F, J=J, u=u, bcs_phase=bcs_phase)  # solve phi, mu for the next time step
+
+        # Update the value of phi(n), u(n), phi(n+1), mu(n+1)
+        u0.vector()[:] = u.vector()
+        phi_0, mu_0 = dolfin.split(u0)
+        phi, mu = dolfin.split(u)
+
+        # Then solve the flow
+        u_flow = problem_coupled(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi, mu=mu, vi=vi, theta=theta,
+                                 Ca=Ca)
+        velocity, pressure = u_flow.split()
+
+        # See div(v)
+        check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
+                    folder_name=folder_name)
+        # See hydrodynamics
+        # check_hydro(velocity=velocity, pressure=pressure, u=u, theta=theta, Ca=Ca, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, time=i)
+
+        """
         # First solve the flow and the pressure with phi_0 and mu_0
         u_flow = problem_coupled(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi, mu=mu, vi=vi, theta=theta,
                                  Ca=Ca)
@@ -137,7 +162,7 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         # Finally update the value of phi_0 and u_0
         u0.vector()[:] = u.vector()
         phi_0, mu_0 = dolfin.split(u0)
-
+        """
         # save figure in folder
         arr_interface = main_save_fig(u=u, u_flow=u_flow, i=i, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
                                       folder_name=folder_name, theta=theta)
