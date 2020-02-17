@@ -2,6 +2,7 @@
 import dolfin
 from ufl import dot, grad
 from model.model_domains import dom_and_bound
+import matplotlib.pyplot as plt
 import ufl
 
 
@@ -99,7 +100,7 @@ def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace
     bc_v_top = dolfin.DirichletBC(w_flow.sub(0), v_top_bottom, boundaries, 3)
     bc_v_bot = dolfin.DirichletBC(w_flow.sub(0), v_top_bottom, boundaries, 4)
     # boundary conditions
-    bcs_flow = [bc_v_left, bc_p_right, bc_v_top, bc_v_bot]
+    bcs_flow = [bc_v_left, bc_p_right]#, bc_v_top, bc_v_bot]
 
     return bcs_flow, domain, boundaries
 

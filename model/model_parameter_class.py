@@ -31,17 +31,15 @@ class ModelParam:
     vi :            Expression, inflow velocity (1)
     """
 
-    def __init__(self, grid_resolution: int, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float,
+    def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float,
                  Pe: int,
                  h_0: float, k_wave: float) -> None:
         # Grid parameters
-        self.grid_resolution = grid_resolution
+        self.h = h
         self.dim_x = dim_x
         self.dim_y = dim_y
-        self.nx = grid_resolution
-        self.ny = grid_resolution
-        self.h_x = dim_x / grid_resolution
-        self.h_y = dim_y / grid_resolution
+        self.nx = int(dim_x/h)
+        self.ny = int(dim_y/h)
         # Time parameters
         self.n = n
         self.dt = dt
@@ -57,16 +55,15 @@ class ModelParam:
         self.k_wave = k_wave
 
         # Fixed parameters, don't change
-        self.mid = 1  # 0.5
+        self.mid = 1  # 0.5  # 1
         self.vi = "1"
 
 
-def save_param(h_x: float, h_y: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float,
+def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float,
                Cahn: float, Pe: float, Ca: float, h_0: float, k_wave: float) -> str:
     """
     Saves the parameters in a text files + returns the name of the folder for other saves
-    :param h_x : smallest element of the grid in the direction x
-    :param h_y : smallest element of the grid in the direction y
+    :param h : smallest element of the grid
     :param dim_x: dimension in the direction of x
     :param dim_y: dimension in the direction of y
     :param nx: number of mesh element in direction x
@@ -98,7 +95,7 @@ def save_param(h_x: float, h_y: float, dim_x: int, dim_y: int, nx: int, ny: int,
     os.makedirs(new_path + '/Checks')
     file = open("results/Figures/" + folder_name + "/param.txt", "w")
     file.write("Model 2 (slip, Ca, Pe, K) \n" + "Parameters: "
-               + "\n h_x= " + str(h_x) + "\n h_y= " + str(h_y) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)
+               + "\n h= " + str(h) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)
                + "\n nx= " + str(nx) + "\n ny= " + str(ny)
                + "\n n= " + str(n) + "\n dt= " + str(dt) + "\n theta= " + str(theta)
                + "\n Cahn= " + str(Cahn) + "\n Pe= " + str(Pe) + "\n Ca= " + str(Ca)

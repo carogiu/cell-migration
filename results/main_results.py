@@ -65,10 +65,11 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
     # h_y = dim_y / ny
     # arr_ux, arr_uy = array_exp_velocity(velocity=velocity, mesh=mesh, nx=nx, ny=ny)
 
+
     fig = plt.figure()
     p = dolfin.plot(dolfin.div(velocity))
-    p.set_clim(-.1, .1)
-    fig.colorbar(p, boundaries=[-.1, .1], cmap='jet')
+    p.set_clim(-.5, .5)
+    fig.colorbar(p, boundaries=[-.5, .5], cmap='jet')
     plt.title('Divergence for t=' + str(time))
     ax = axes([0, 0, 1, 1], frameon=False)
     ax.set_axis_off()
@@ -79,33 +80,21 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
     plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')
     plt.close(fig)
 
+
     """
+    tot_div = np.zeros(1)
+
     for collection in p.collections:
         for path in collection.get_paths():
-            print(path.to_polygons())
-    """
-
-    """
-    arr_div = np.zeros((nx, ny))
-    for i in range(nx - 1):
-        for j in range(ny - 1):
-            divergence = (arr_ux[i + 1, j] - arr_ux[i, j]) / h_x + (arr_uy[i, j + 1] - arr_uy[i, j]) / h_y
-            arr_div[i, j] = divergence
-
-    fig = plt.figure()
-    plt.imshow(arr_div, cmap='jet', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=-0.5, vmax=0.5)
-    plt.colorbar()
-    plt.title('Divergence for t=' + str(time))
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')
-    plt.close(fig)
+            #np.append(tot_div, np.asarray(path.to_polygons()))
+            print(path.to_polygons()[0].shape)
+    #print(tot_div)
     """
     return
 
 
 def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.function.function.Function,
-                u: dolfin.function.function.Function, theta: dolfin.Constant, Ca: int,
+                u: dolfin.function.function.Function, theta: float, Ca: float,
                 mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, dim_x: int, dim_y: int, time: int,
                 folder_name: str) -> None:
     """
@@ -149,8 +138,8 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
 
     fig = plt.figure()
     plot_hydro_y = dolfin.plot(hydro[1])
-    plot_hydro_y.set_clim(-.1, .1)
-    fig.colorbar(plot_hydro_y, boundaries=[-.1, .1], cmap='jet')
+    plot_hydro_y.set_clim(-.01, .01)
+    fig.colorbar(plot_hydro_y, boundaries=[-.01, .01], cmap='jet')
     plt.title('Hydro_y for t=' + str(time))
     ax = axes([0, 0, 1, 1], frameon=False)
     ax.set_axis_off()

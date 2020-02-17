@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import dolfin
-import fenics
 from pylab import *
 
 
@@ -29,7 +28,7 @@ def main_save_fig(u: dolfin.function.function.Function, u_flow: dolfin.function.
     arr_ux, arr_uy, arr_p = array_exp_flow(u_flow=u_flow, mesh=mesh, nx=nx, ny=ny)
     velocity, pressure = u_flow.split()
     phi, _ = u.split()
-
+    """
     # Test pressure
     fig = plt.figure()
     pr = dolfin.plot(object=pressure, cmap='jet')
@@ -45,6 +44,7 @@ def main_save_fig(u: dolfin.function.function.Function, u_flow: dolfin.function.
     plt.savefig('results/Figures/' + folder_name + "/Pressure2_" + str(i) + '.png')
     plt.close(fig)
 
+    
     # Test vx
     fig = plt.figure()
     plot_vx = dolfin.plot(object=velocity[0], cmap='jet')
@@ -89,7 +89,7 @@ def main_save_fig(u: dolfin.function.function.Function, u_flow: dolfin.function.
     plt.ylabel('y')
     plt.savefig('results/Figures/' + folder_name + "/Phi2_" + str(i) + '.png')
     plt.close(fig)
-
+    """
     arr_interface = save_fig(arr=arr_phi, name='Phase', time=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, theta=theta,
                              folder_name=folder_name)
     save_fig(arr=arr_ux, name='Vx', time=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, theta=theta,
