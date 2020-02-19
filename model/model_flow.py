@@ -61,16 +61,14 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     #    raise ValueError('Divergence should not be higher than a certain threshold - Check Physics solutions')
 
     # Solver
-    problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow)
+    problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow, form_compiler_parameters={"optimize":True, "cpp_optimize":True})
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
-    solver_flow.parameters["linear_solver"] = "mumps"  # LU did not work for big simulations because of memory capacity
-    # solver_flow.parameters["preconditioner"] = "ilu"
+    solver_flow.parameters["linear_solver"] = "mumps"  # LU did not work for big simulations because of memory capacity ? mumps?
+    solver_flow.parameters["preconditioner"] = "ilu"
     prm_flow = solver_flow.parameters["krylov_solver"]
     prm_flow["absolute_tolerance"] = 1E-7
     prm_flow["relative_tolerance"] = 1E-4
     prm_flow["maximum_iterations"] = 1000
-    dolfin.parameters["form_compiler"]["optimize"] = True
-    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
     solver_flow.solve()
     return u_flow
 

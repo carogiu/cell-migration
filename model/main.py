@@ -134,8 +134,7 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         velocity, pressure = u_flow.split()
 
         # See div(v)
-        check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
-                    folder_name=folder_name)
+        # check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i, folder_name=folder_name)
         # See hydrodynamics
         # check_hydro(velocity=velocity, pressure=pressure, u=u, theta=theta, Ca=Ca, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, time=i)
 
