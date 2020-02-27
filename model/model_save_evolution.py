@@ -152,16 +152,16 @@ def save_fig(arr: np.ndarray, name: str, time: int, dim_x: int, dim_y: int, nx: 
         v_min, v_max = -1.1, 1.1
         color_map = 'seismic'
         arr_interface = interface(arr_phi=arr, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
-        plt.plot(arr_interface[:, 0], arr_interface[:, 1], ls=':', c='k')
-        peaks_t, _ = find_peaks(arr_interface[:, 0])
-        peaks_b, _ = find_peaks(-arr_interface[:, 0])
-        plt.plot(arr_interface[peaks_t, 0], arr_interface[peaks_t, 1], "x", c='g')
-        plt.plot(arr_interface[peaks_b, 0], arr_interface[peaks_b, 1], "x", c='g')
+        # plt.plot(arr_interface[:, 0], arr_interface[:, 1], ls=':', c='k')
+        # peaks_t, _ = find_peaks(arr_interface[:, 0])
+        # peaks_b, _ = find_peaks(-arr_interface[:, 0])
+        # plt.plot(arr_interface[peaks_t, 0], arr_interface[peaks_t, 1], "x", c='g')
+        # plt.plot(arr_interface[peaks_b, 0], arr_interface[peaks_b, 1], "x", c='g')
     if name == 'Vy':
-        v_min, v_max = -1, +1
+        v_min, v_max = -.5, +.5
         color_map = 'jet'
     if name == 'Vx':
-        v_min, v_max = 0, +2
+        v_min, v_max = .5, +1.5
         color_map = 'jet'
     if name == 'Pressure':
         v_min, v_max = 0, dim_x / 2 * (theta + 1)
