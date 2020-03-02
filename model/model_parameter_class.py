@@ -24,6 +24,8 @@ class ModelParam:
     Ca_star:        float, capillary number for classic model without the phase field (in our case, 1)
     Ca :            float, Capillary number (with the phase field correction)
 
+    starting_point : where the interface is at the beginning
+
     h_0:            float, amplitude of the perturbation
     k_wave:         float, wave number of the perturbation
 
@@ -32,37 +34,39 @@ class ModelParam:
     """
 
     def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float,
-                 Pe: int,
-                 h_0: float, k_wave: float) -> None:
+                 Pe: int, starting_point: float, h_0: float, k_wave: float) -> None:
         # Grid parameters
         self.h = h
         self.dim_x = dim_x
         self.dim_y = dim_y
-        self.nx = int(dim_x/h)
-        self.ny = int(dim_y/h)
+        self.nx = int(dim_x / h)
+        self.ny = int(dim_y / h)
+
         # Time parameters
         self.n = n
         self.dt = dt
+
         # Model parameters
         self.theta = theta
         self.Cahn = Cahn
         self.Pe = Pe
         self.Ca_star = 1
         self.Ca = 2 * np.sqrt(2) * Cahn * self.Ca_star / 3
+        self.starting_point = starting_point
 
         # Initial perturbation parameters
         self.h_0 = h_0
         self.k_wave = k_wave
 
         # Fixed parameters, don't change
-        self.mid = 1  # 0.5  # 1
+        self.mid = 1
         self.vi = "1"
 
 
 def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float,
-               Cahn: float, Pe: float, Ca: float, h_0: float, k_wave: float) -> str:
+               Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float) -> str:
     """
-    Saves the parameters in a text files + returns the name of the folder for other saves
+    Saves the parameters in a text file + returns the name of the folder for other saves
     :param h : smallest element of the grid
     :param dim_x: dimension in the direction of x
     :param dim_y: dimension in the direction of y
@@ -74,6 +78,7 @@ def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: f
     :param Cahn: Cahn number
     :param Pe: Peclet number
     :param Ca : Capillary number
+    :param starting_point : float, where the interface is at the beginning
     :param h_0: amplitude of the perturbation
     :param k_wave: wave number of the perturbation
     :return: string, name of the folder where files should be saved
@@ -99,6 +104,7 @@ def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: f
                + "\n nx= " + str(nx) + "\n ny= " + str(ny)
                + "\n n= " + str(n) + "\n dt= " + str(dt) + "\n theta= " + str(theta)
                + "\n Cahn= " + str(Cahn) + "\n Pe= " + str(Pe) + "\n Ca= " + str(Ca)
+               + "\n starting_point= " + str(starting_point)
                + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave) + "\n sigma= " + str(sigma) + "\n q= " + str(q))
     file.close()
     return folder_name

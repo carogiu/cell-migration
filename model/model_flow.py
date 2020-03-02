@@ -1,9 +1,10 @@
 ### Packages
 import dolfin
 from ufl import dot, grad
-from model.model_domains import dom_and_bound
-import matplotlib.pyplot as plt
 import ufl
+
+### Imports
+from model.model_domains import dom_and_bound
 
 
 ### Main functions
@@ -61,9 +62,11 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     #    raise ValueError('Divergence should not be higher than a certain threshold - Check Physics solutions')
 
     # Solver
-    problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow, form_compiler_parameters={"optimize":True, "cpp_optimize":True})
+    problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow,
+                                                   form_compiler_parameters={"optimize": True, "cpp_optimize": True})
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
-    solver_flow.parameters["linear_solver"] = "mumps"  # LU did not work for big simulations because of memory capacity ? mumps?
+    solver_flow.parameters[
+        "linear_solver"] = "mumps"  # LU did not work for big simulations because of memory capacity ? mumps?
     solver_flow.parameters["preconditioner"] = "ilu"
     prm_flow = solver_flow.parameters["krylov_solver"]
     prm_flow["absolute_tolerance"] = 1E-7
@@ -93,12 +96,8 @@ def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace
     # pressure out
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
-    # test top-bottom
-    v_top_bottom = dolfin.Expression((vi, "0.0"), degree=2)
-    bc_v_top = dolfin.DirichletBC(w_flow.sub(0), v_top_bottom, boundaries, 3)
-    bc_v_bot = dolfin.DirichletBC(w_flow.sub(0), v_top_bottom, boundaries, 4)
     # boundary conditions
-    bcs_flow = [bc_v_left, bc_p_right]#, bc_v_top, bc_v_bot]
+    bcs_flow = [bc_v_left, bc_p_right]
 
     return bcs_flow, domain, boundaries
 
@@ -146,18 +145,4 @@ def flow_static_phase_no_mu(w_flow, vi, phi, theta):  # THIS IS WORKING
     dolfin.solve(a_flow == L_flow, u_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
                  form_compiler_parameters={"optimize": True})
     return u_flow
-
-
-
-
-def right(x):
-    return x[0] > ( 1.0 - dolfin.DOLFIN_EPS)
-
-
-def left(x):
-    return x[0] < dolfin.DOLFIN_EPS
-
-
-def top_bottom(x):
-    return x[1] > 1.0 - dolfin.DOLFIN_EPS or x[1] < dolfin.DOLFIN_EPS 
 """

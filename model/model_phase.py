@@ -1,8 +1,11 @@
+### Packages
 import random
 import dolfin
 import numpy as np
 from ufl import dot, grad
 import ufl
+
+### Imports
 from model.model_domains import dom_and_bound
 
 
@@ -12,35 +15,33 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
     Creates the initial condition for the phase
     """
 
-    def __init__(self, Cahn, h_0, k_wave, **kwargs):
-        random.seed(2)  # + MPI.rank(MPI.comm_world))  # need to seed random number
+    def __init__(self, Cahn, h_0, k_wave, starting_point, **kwargs):
+        random.seed(2)  # need to seed random number
         self.Cahn = Cahn
         self.h_0 = h_0
         self.k_wave = k_wave
+        self.start = starting_point
         super().__init__(**kwargs)
 
     def eval(self, values, x):
         Cahn = float(self.Cahn)
         h_0 = float(self.h_0)
         k_wave = float(self.k_wave)
-        if abs(x[0]+3.5) <= h_0 * 1.5:
+        start = float(self.start)
+        if abs(x[0] - start) <= h_0 * 1.5:
             # random perturbation
             # h = np.random.randn(1) * Cahn
             # sin perturbation
             dx = h_0 * np.sin(x[1] * k_wave)
-            values[0] = np.tanh((x[0]+3.5 + dx) / (Cahn * np.sqrt(2)))  # phi(0)
-
-        else:
-            values[0] = np.tanh((x[0]+3.5) / (Cahn * np.sqrt(2)))
-
-        if abs(x[0]+3.5) <= h_0 * 1.5:
-            dx = h_0 * np.sin(x[1] * k_wave)
             dx_prime = h_0 * k_wave * np.cos(x[1] * k_wave)
-            phi = np.tanh((x[0]+3.5 + dx) / (Cahn * np.sqrt(2)))
-            values[1] = (Cahn * dx / np.sqrt(2)) * (k_wave ** 2) * (1 - phi ** 2) + dx_prime ** 2 * phi * (1 - phi ** 2)
+            phi = np.tanh((x[0] - start + dx) / (Cahn * np.sqrt(2)))
+            values[0] = phi  # phi(0)
+            values[1] = (Cahn * dx / np.sqrt(2)) * (k_wave ** 2) * (1 - phi ** 2) + dx_prime ** 2 * phi * (
+                    1 - phi ** 2)  # mu(0)
 
-        else:
-            values[1] = 0.0  # mu(0) outside of the perturbation
+        else:  # Outside of the perturbation
+            values[0] = np.tanh((x[0] - start) / (Cahn * np.sqrt(2)))
+            values[1] = 0.0
 
     def value_shape(self):
         return (2,)  # dimension 2 (phi,mu)
@@ -58,7 +59,8 @@ def space_phase(mesh: dolfin.cpp.generation.RectangleMesh) -> dolfin.function.fu
     return space_ME
 
 
-def initiate_phase(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: float, h_0: float, k_wave=float):
+def initiate_phase(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: float, h_0: float, k_wave: float,
+                   starting_point: float):
     """
     Initiate the phase : from the function space, creates trial functions and test functions, and applies the
     initial conditions
@@ -66,6 +68,7 @@ def initiate_phase(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: 
     :param Cahn: Cahn number
     :param h_0: amplitude of the sin
     :param k_wave: wave number of the sin
+    :param starting_point : float, where the interface is at the beginning
     :return: Functions
     """
     du = dolfin.TrialFunction(V=space_ME)
@@ -74,7 +77,7 @@ def initiate_phase(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: 
     u = dolfin.Function(space_ME)  # current solution u
     u0 = dolfin.Function(space_ME)  # solution from previous converged step u0
 
-    u_init = InitialConditions(degree=1, Cahn=Cahn, h_0=h_0, k_wave=k_wave)
+    u_init = InitialConditions(degree=1, Cahn=Cahn, h_0=h_0, k_wave=k_wave, starting_point=starting_point)
     u.interpolate(u_init)
     u0.interpolate(u_init)
 
@@ -112,8 +115,6 @@ def problem_phase_with_epsilon(space_ME: dolfin.function.functionspace.FunctionS
     :param Cahn: Cahn number
     :return: Functions
     """
-    # intermediate mu
-    # mu_mid = mu_calc(mid=mid, mu=mu, mu_0=mu_0)
     # define the domain
     bcs_phase, domain = boundary_conditions_phase(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
     dx = dolfin.dx(subdomain_data=domain)
@@ -121,9 +122,10 @@ def problem_phase_with_epsilon(space_ME: dolfin.function.functionspace.FunctionS
 
     L0 = (phi * phi_test - phi_0 * phi_test +
           dt * mid * (dot(grad(mu), grad(phi_test))) / Pe +
-          dt * mid * phi_test * dot(velocity, grad(phi)))*dx
-          #dt * (1 - mid) * (dot(grad(mu_0), grad(phi_test))) / Pe +
-          #dt * (1 - mid) * phi_test * dot(velocity, grad(phi_0))) * dx
+          dt * mid * phi_test * dot(velocity, grad(phi))) * dx
+    # when try Crank Nicholson
+    # dt * (1 - mid) * (dot(grad(mu_0), grad(phi_test))) / Pe +
+    # dt * (1 - mid) * phi_test * dot(velocity, grad(phi_0))) * dx
 
     L1 = (mu * mu_test - (phi ** 3 - phi) * mu_test - (Cahn ** 2) * dot(grad(phi), grad(mu_test))) * dx
 
@@ -183,20 +185,14 @@ def boundary_conditions_phase(space_ME: dolfin.function.functionspace.FunctionSp
     return bcs_phase, domain
 
 
+### NOT USED ANYMORE
+"""
 ### Utilitarian functions
 def mu_calc(mid: float, mu: ufl.indexed.Indexed, mu_0: ufl.indexed.Indexed):
-    """
-    Time discretization (Crank Nicholson method)
-    :param mid: float, time scheme
-    :param mu: Function, current solution
-    :param mu_0: Function, previous solution
-    :return: Function
-    """
     return (1.0 - mid) * mu_0 + mid * mu
 
 
-### NOT USED ANYMORE
-"""
+
 #     (For the example) Defines the potential
 def potential(phi):
     phi = dolfin.variable(phi)

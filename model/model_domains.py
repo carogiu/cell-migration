@@ -1,7 +1,6 @@
+### Packages
 import dolfin
 
-
-# boundaries
 
 class BD_right(dolfin.SubDomain):
     """
@@ -47,17 +46,11 @@ class BD_top(dolfin.SubDomain):
 
 
 class BD_bottom(dolfin.SubDomain):
-    """
-    :param dim_y: dimension in the direction of y
-    """
 
-    def __init__(self, dim_y, **kwargs):
-        self.dim_y = dim_y
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def inside(self, x, on_boundary):
-        d_y = self.dim_y
-
         return on_boundary and dolfin.near(x0=x[1], x1=0, eps=1E-10)
 
 
@@ -73,13 +66,14 @@ def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int,
     # define interior domain
     domain = dolfin.MeshFunction(value_type="size_t", mesh=mesh, dim=2)  # used to define a grid cell (dimension 2)
     domain.set_all(0)
+
     # define the subdomains of the boundaries
     boundaries = dolfin.MeshFunction(value_type="size_t", mesh=mesh, dim=1)  # used to define the facets (dimension 1)
     boundaries.set_all(0)
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
     dom_top = BD_top(dim_y)
-    dom_bot = BD_bottom(dim_y)
+    dom_bot = BD_bottom()
     dom_left.mark(boundaries, 1)  # left is marked as (1)
     dom_right.mark(boundaries, 2)  # right is marked as (2)
     dom_top.mark(boundaries, 3)  # tob is marked as (3)
