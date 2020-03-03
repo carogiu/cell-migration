@@ -49,7 +49,7 @@ def main_model(config):
     space_ME = space_phase(mesh=mesh)
     w_flow = space_flow(mesh=mesh)
 
-    print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')
+    print('Expected computation time = ' + str(nx * ny * n * 2E-4 / 60) + ' minutes') #4e-4 on mac 2e-4 on big
     t1 = time.time()
 
     # save the parameters used
