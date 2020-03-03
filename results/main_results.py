@@ -10,6 +10,36 @@ from pylab import *
 from model.model_flow import theta_phi
 
 
+def save_interface(arr_interface: np.ndarray, folder_name: str):
+    file_name = "results/Figures/" + folder_name + "/interface.csv"
+    a, b = arr_interface.shape  # b=2
+    len_int = int(a * b)
+    interface_one_line = arr_interface.reshape(len_int)
+    with open(file_name, 'a') as file:
+        writer = csv.writer(file, delimiter=' ')
+        writer.writerow(interface_one_line)
+    return
+
+
+# In progress
+def show_interface(file_interface, ny, n):
+    with open(file_interface, newline="") as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=' ')
+        for row in spamreader:
+            intf_in_time = np.asarray(row, dtype=float)
+            mid = int(intf_in_time.shape[0] / 2)
+            intf_in_time = intf_in_time.reshape((mid, 2))
+            fig = plt.figure()
+            plt.plot(intf_in_time[:, 0], intf_in_time[:, 1], ls=':', c='k')
+            plt.xlabel('x')
+            plt.ylabel('y')
+            plt.axis([-2.5, 2.5, 0, 5])
+            plt.show()
+            plt.close(fig)
+
+    return
+
+
 def all_peaks(arr_interface: np.ndarray) -> np.ndarray:
     """
     To find the peaks of the interface
@@ -61,7 +91,6 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
     :param folder_name: name of the folder where to save the files
     :return:
     """
-
     fig = plt.figure()
     p = dolfin.plot(dolfin.div(velocity))
     p.set_clim(-.5, .5)
@@ -75,7 +104,6 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
     plt.ylabel('y')
     plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')
     plt.close(fig)
-
     """
     tot_div = np.zeros(1)
 
@@ -108,11 +136,9 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
     :param folder_name: name of the folder where to save the files
     :return:
     """
-
     phi, mu = u.split()
     theta_p = theta_phi(theta, phi)
     hydro = dolfin.grad(pressure) + (1 / Ca) * phi * dolfin.grad(mu) + theta_p * velocity
-
     fig = plt.figure()
     plot_hydro_x = dolfin.plot(hydro[0])
     plot_hydro_x.set_clim(-.1, .1)
@@ -126,7 +152,6 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
     plt.ylabel('y')
     plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_x_" + str(time) + '.png')
     plt.close(fig)
-
     fig = plt.figure()
     plot_hydro_y = dolfin.plot(hydro[1])
     plot_hydro_y.set_clim(-.01, .01)

@@ -7,7 +7,7 @@ from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
-from results.main_results import save_peaks  # , check_div_v, check_hydro
+from results.main_results import save_peaks, save_interface  # , check_div_v, check_hydro
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -122,6 +122,7 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
     # save the solutions
     arr_interface = main_save_fig_interm(u=u, velocity=velocity, pressure=pressure, i=0, mesh=mesh, nx=nx, ny=ny,
                                          dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, theta=theta)
+    save_interface(arr_interface=arr_interface, folder_name=folder_name)
     save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
     t_ini_2 = time.time()
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
@@ -158,6 +159,7 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         # save figure in folder
         arr_interface = main_save_fig(u=u, u_flow=u_flow, i=i, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
                                       folder_name=folder_name, theta=theta)
+        save_interface(arr_interface=arr_interface, folder_name=folder_name)
         save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
         t_2 = time.time()
         print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
