@@ -7,7 +7,7 @@ from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
-from results.main_results import save_peaks, save_interface  # , check_div_v, check_hydro
+from results.main_results import save_peaks, save_interface , check_div_v, check_hydro
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -144,14 +144,14 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         phi_0, mu_0 = dolfin.split(u0)
         phi, mu = dolfin.split(u)
         t_3 = time.time()
-        print('Time non-linear = ' + str(t_3 - t_1) + ' seconds')
+        print('Time to solve phase = ' + str(t_3 - t_1) + ' seconds')
 
         # Then solve the flow
         u_flow = problem_coupled(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi, mu=mu, vi=vi, theta=theta,
                                  Ca=Ca)
         velocity, pressure = u_flow.split()
         t_4 = time.time()
-        print('Time linear = ' + str(t_4 - t_3) + ' seconds')
+        print('Time to solve flow = ' + str(t_4 - t_3) + ' seconds')
 
 
         # See div(v)

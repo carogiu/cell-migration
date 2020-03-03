@@ -49,19 +49,48 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     theta_p = theta_phi(theta=theta, phi=phi)
 
     # Functions
-    (velocity, pressure) = dolfin.TrialFunctions(V=w_flow)
-    (v_test, p_test) = dolfin.TestFunctions(V=w_flow)
+    du_flow = dolfin.TrialFunction(V=w_flow)
+    v_test, p_test = dolfin.TestFunctions(V=w_flow)
+
+    u_flow = dolfin.Function(w_flow)
+    velocity, pressure = dolfin.split(u_flow)
 
     # Problem
     a_flow = theta_p * dot(velocity, v_test) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx
     L_flow = p_test * ds(1) - (1 / Ca) * phi * dot(v_test, grad(mu)) * dx
-    u_flow = dolfin.Function(w_flow)
+
+    F_flow = a_flow - L_flow
+    J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
+
+    # Non linear solver
+    problem_flow = dolfin.NonlinearVariationalProblem(F=F_flow, u=u_flow, bcs=bcs_flow, J=J_flow)
+    solver_flow = dolfin.NonlinearVariationalSolver(problem_flow)
+
+    # Solver parameters
+    prm = solver_flow.parameters
+    prm["nonlinear_solver"] = "newton"
+    prm["newton_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["relaxation_parameter"] = 1.0
+    dolfin.parameters["form_compiler"]["optimize"] = True
+    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
+
+    prm["newton_solver"]["linear_solver"] = "mumps"
+    # prm["newton_solver"]["preconditioner"] = "ilu"
+    prm["newton_solver"]["krylov_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["krylov_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["krylov_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["krylov_solver"]["nonzero_initial_guess"] = True
+    prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
+    solver_flow.solve()
 
     # v_div, _ = dolfin.split(u_flow)
     # if abs(div(v_div)) >= 10e-8:  # TODO : Correct calculation of div
     #    raise ValueError('Divergence should not be higher than a certain threshold - Check Physics solutions')
 
-    # Solver
+    """
+    # Linear solver
     problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow,
                                                    form_compiler_parameters={"optimize": True, "cpp_optimize": True})
     solver_flow = dolfin.LinearVariationalSolver(problem_flow)
@@ -73,6 +102,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     prm_flow["relative_tolerance"] = 1E-4
     prm_flow["maximum_iterations"] = 1000
     solver_flow.solve()
+    """
     return u_flow
 
 
