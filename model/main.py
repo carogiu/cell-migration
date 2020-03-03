@@ -143,11 +143,16 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         u0.vector()[:] = u.vector()
         phi_0, mu_0 = dolfin.split(u0)
         phi, mu = dolfin.split(u)
+        t_3 = time.time()
+        print('Time non-linear = ' + str(t_3 - t_1) + ' seconds')
 
         # Then solve the flow
         u_flow = problem_coupled(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi, mu=mu, vi=vi, theta=theta,
                                  Ca=Ca)
         velocity, pressure = u_flow.split()
+        t_4 = time.time()
+        print('Time linear = ' + str(t_4 - t_3) + ' seconds')
+
 
         # See div(v)
         # check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
