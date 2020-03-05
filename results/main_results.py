@@ -10,33 +10,38 @@ from pylab import *
 from model.model_flow import theta_phi
 
 
-def save_interface(arr_interface: np.ndarray, folder_name: str):
+def save_interface_and_peaks(arr_interface: np.ndarray, folder_name: str, time_simu: int, dt: float, h_0: float,
+                             starting_point: int):
+    """
+
+    :param arr_interface: array, contains the coordinates of the interface (ny x 2)
+    :param folder_name: str, name of the folder were to save the values
+    :param time_simu: int, time of the simulation
+    :param dt: float, time step
+    :param h_0: float, initial amplitude of the instability
+    :param starting_point: float, where the simulation starts
+    :return:
+    """
     file_name = "results/Figures/" + folder_name + "/interface.csv"
+    file_name_final = "results/Figures/" + folder_name + "/interface_final.csv"
+    position_th = time_simu * dt + starting_point
     a, b = arr_interface.shape  # b=2
+    # save the interface coordinates
     len_int = int(a * b)
     interface_one_line = arr_interface.reshape(len_int)
     with open(file_name, 'a') as file:
         writer = csv.writer(file, delimiter=' ')
         writer.writerow(interface_one_line)
-    return
-
-
-# In progress
-def show_interface(file_interface, ny, n):
-    with open(file_interface, newline="") as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=' ')
-        for row in spamreader:
-            intf_in_time = np.asarray(row, dtype=float)
-            mid = int(intf_in_time.shape[0] / 2)
-            intf_in_time = intf_in_time.reshape((mid, 2))
-            fig = plt.figure()
-            plt.plot(intf_in_time[:, 0], intf_in_time[:, 1], ls=':', c='k')
-            plt.xlabel('x')
-            plt.ylabel('y')
-            plt.axis([-2.5, 2.5, 0, 5])
-            plt.show()
-            plt.close(fig)
-
+    # save the peaks coordinates
+    peaks_t, _ = find_peaks(arr_interface[:, 0])
+    peaks_b, _ = find_peaks(-arr_interface[:, 0])
+    peaks = np.concatenate((arr_interface[peaks_t, :], arr_interface[peaks_b, :]), axis=0)
+    peaks = peaks[peaks[:, 1].argsort()][:, 0]
+    amplitude = peaks - position_th
+    amplitude = amplitude[abs(amplitude) >= h_0 / 4]
+    with open(file_name_final, 'a') as file:
+        writer = csv.writer(file, delimiter=' ')
+        writer.writerow(amplitude)
     return
 
 
