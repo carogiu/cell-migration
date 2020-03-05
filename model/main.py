@@ -7,7 +7,7 @@ from model.model_flow import problem_coupled, space_flow
 from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
 from model.model_save_evolution import main_save_fig, main_save_fig_interm
 from model.model_parameter_class import save_param
-from results.main_results import save_peaks, save_interface , check_div_v, check_hydro
+from results.main_results import save_peaks, save_interface_and_peaks, check_div_v, check_hydro
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -49,7 +49,7 @@ def main_model(config):
     space_ME = space_phase(mesh=mesh)
     w_flow = space_flow(mesh=mesh)
 
-    print('Expected computation time = ' + str(nx * ny * n * 2E-4 / 60) + ' minutes') #4e-4 on mac 2e-4 on big
+    print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')  # 5e-4 on mac 2e-4 on big
     t1 = time.time()
 
     # save the parameters used
@@ -122,8 +122,9 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
     # save the solutions
     arr_interface = main_save_fig_interm(u=u, velocity=velocity, pressure=pressure, i=0, mesh=mesh, nx=nx, ny=ny,
                                          dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, theta=theta)
-    save_interface(arr_interface=arr_interface, folder_name=folder_name)
-    save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
+    save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=0, dt=dt, h_0=h_0,
+                             starting_point=starting_point)
+    # save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
     t_ini_2 = time.time()
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
 
@@ -153,7 +154,6 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         t_4 = time.time()
         print('Time to solve flow = ' + str(t_4 - t_3) + ' seconds')
 
-
         # See div(v)
         # check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
         #             folder_name=folder_name)
@@ -164,9 +164,9 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
         # save figure in folder
         arr_interface = main_save_fig(u=u, u_flow=u_flow, i=i, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
                                       folder_name=folder_name, theta=theta)
-        save_interface(arr_interface=arr_interface, folder_name=folder_name)
-        save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
+        save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=i, dt=dt, h_0=h_0,
+                                 starting_point=starting_point)
+        # save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
         t_2 = time.time()
         print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
-
     return
