@@ -1,0 +1,16 @@
+Model 2 (slip, Ca, Pe, K) 
+Parameters: 
+ h= 0.05
+ dim_x= 5
+ dim_y= 5
+ nx= 100
+ ny= 100
+ n= 1
+ dt= 0.05
+ theta= 20.0
+ Cahn= 0.2
+ Pe= 20.0
+ Ca= 0.1885618083164127
+ h_0= 0.4
+ wave= 2.516611478423583
+ sigma= 1.5179561298427964
