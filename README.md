@@ -12,3 +12,5 @@
 - model_visu plots the results
 - model_parameters_class saves the parameters
 - model/main solves the problem
+
+Run main.py to run the simlation
