@@ -4,7 +4,7 @@
 
 ## Packages and environments
 - Needs to be run in the Fenics Projet environment
-- Requires Numpy, Matplotlib, Dolfin and Random
+- Requires Numpy, Matplotlib, Scipy
 
 ## Construction
 - model_flow and model_phase contain the function to solve the model
