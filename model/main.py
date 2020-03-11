@@ -3,11 +3,11 @@ import dolfin
 import time
 
 ### Imports
-from model.model_flow import problem_coupled, space_flow
-from model.model_phase import initiate_phase, space_phase, problem_phase_with_epsilon, solve_phase
-from model.model_save_evolution import main_save_fig, main_save_fig_interm
+from model.model_common import mesh_from_dim, initiate_functions, main_solver
+from model.model_phase import space_phase
+from model.model_flow import space_flow
+from model.model_save_evolution import save_HDF5
 from model.model_parameter_class import save_param
-from results.main_results import save_peaks, save_interface_and_peaks, check_div_v, check_hydro
 
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
@@ -44,17 +44,16 @@ def main_model(config):
     vi = config.vi
     mid = config.mid
 
+    # Saving parameter
+    folder_name = config.folder_name
+
     # Create Mesh
     mesh = mesh_from_dim(nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
     space_ME = space_phase(mesh=mesh)
     w_flow = space_flow(mesh=mesh)
 
-    print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')  # 5e-4 on mac 2e-4 on big
+    print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')  # 5e-4 on Mac 2e-4 on big Linux
     t1 = time.time()
-
-    # save the parameters used
-    folder_name = save_param(h=h, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, n=n, dt=dt, theta=theta,
-                             Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave)
 
     # Compute the model
     time_evolution(mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
@@ -65,22 +64,6 @@ def main_model(config):
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 
     return
-
-
-### Initiate Mesh
-
-def mesh_from_dim(nx: int, ny: int, dim_x: int, dim_y: int) -> dolfin.cpp.generation.RectangleMesh:
-    """
-    Creates mesh of dimension nx, ny of dimensions dim_x x dim_y
-
-    :param nx: number of cells in x direction
-    :param ny: number of cells in y direction
-    :param dim_x : dimensions in x direction
-    :param dim_y : dimensions in y direction
-    :return: mesh
-    """
-    mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x / 2, 0.0), dolfin.Point(dim_x / 2, dim_y), nx, ny)
-    return mesh
 
 
 def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, dim_x: int, dim_y: int, dt: float,
@@ -110,63 +93,36 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, nx: int, ny: int, 
     :return:
     """
     t_ini_1 = time.time()
-    # initiate the phase and the instability
-    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0,
-                                                                        k_wave=k_wave, starting_point=starting_point)
 
-    # initiate the velocity and the pressure field
-    velocity = dolfin.Expression((vi, "0.0"), degree=2)
-    pressure = dolfin.Expression("x[0]> start ? theta*(dim_x/2 - x[0]) : theta*(dim_x/2 - start) + start - x[0]",
-                                 degree=1, dim_x=dim_x, theta=theta, start=starting_point)
+    # Initiate the functions
+    phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0, velocity, pressure = initiate_functions(space_ME=space_ME,
+                                                                                                Cahn=Cahn, h_0=h_0,
+                                                                                                k_wave=k_wave,
+                                                                                                starting_point=starting_point,
+                                                                                                dim_x=dim_x,
+                                                                                                theta=theta, vi=vi)
+    # Save the initial phase
+    save_HDF5(function=u, function_name="Phi_and_mu", time_simu=0, folder_name=folder_name, mesh=mesh)
 
-    # save the solutions
-    arr_interface = main_save_fig_interm(u=u, velocity=velocity, pressure=pressure, i=0, mesh=mesh, nx=nx, ny=ny,
-                                         dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, theta=theta)
-    save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=0, dt=dt, h_0=h_0,
-                             starting_point=starting_point)
-    # save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
     t_ini_2 = time.time()
     print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
 
-    # solve through time
+    # Solve through time
     for i in range(1, n):
         t_1 = time.time()
 
-        # First find phi(n+1) and mu(n+1) with the previous velocity
+        # Solve everything
+        u, phi, mu, u_flow, velocity, pressure = main_solver(space_ME=space_ME, w_flow=w_flow, dim_x=dim_x, dim_y=dim_y,
+                                                             mesh=mesh, phi_test=phi_test, mu_test=mu_test, du=du, u=u,
+                                                             phi=phi, mu=mu, phi_0=phi_0, u0=u0, mu_0=mu_0,
+                                                             velocity=velocity, mid=mid, dt=dt, Pe=Pe, Cahn=Cahn,
+                                                             theta=theta, Ca=Ca, vi=vi)
 
-        F, J, u, bcs_phase = problem_phase_with_epsilon(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh,
-                                                        phi_test=phi_test, mu_test=mu_test, du=du, u=u, phi=phi, mu=mu,
-                                                        phi_0=phi_0, mu_0=mu_0, velocity=velocity, mid=mid, dt=dt,
-                                                        Pe=Pe, Cahn=Cahn)
-        u = solve_phase(F=F, J=J, u=u, bcs_phase=bcs_phase)  # solve phi, mu for the next time step
+        # Save the solutions for the phase and the flow
+        save_HDF5(function=u, function_name="Phi_and_mu", time_simu=i, folder_name=folder_name, mesh=mesh)
+        save_HDF5(function=u_flow, function_name="V_and_P", time_simu=i, folder_name=folder_name, mesh=mesh)
 
-        # Update the value of phi(n), u(n), phi(n+1), mu(n+1)
-        u0.vector()[:] = u.vector()
-        phi_0, mu_0 = dolfin.split(u0)
-        phi, mu = dolfin.split(u)
-        t_3 = time.time()
-        print('Time to solve phase = ' + str(t_3 - t_1) + ' seconds')
-
-        # Then solve the flow
-        u_flow = problem_coupled(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi, mu=mu, vi=vi, theta=theta,
-                                 Ca=Ca)
-        velocity, pressure = u_flow.split()
-        t_4 = time.time()
-        print('Time to solve flow = ' + str(t_4 - t_3) + ' seconds')
-
-        # See div(v)
-        # check_div_v(velocity=velocity, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time=i,
-        #             folder_name=folder_name)
-        # See hydrodynamics
-        # check_hydro(velocity=velocity, pressure=pressure, u=u, theta=theta, Ca=Ca, mesh=mesh, nx=nx, ny=ny,
-        #             dim_x=dim_x, dim_y=dim_y, folder_name=folder_name, time=i)
-
-        # save figure in folder
-        arr_interface = main_save_fig(u=u, u_flow=u_flow, i=i, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
-                                      folder_name=folder_name, theta=theta)
-        save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=i, dt=dt, h_0=h_0,
-                                 starting_point=starting_point)
-        # save_peaks(folder_name=folder_name, arr_interface=arr_interface, h_0=h_0)
         t_2 = time.time()
         print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
+
     return
