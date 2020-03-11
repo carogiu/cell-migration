@@ -34,7 +34,7 @@ class ModelParam:
     """
 
     def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float,
-                 Pe: int, starting_point: float, h_0: float, k_wave: float) -> None:
+                 Pe: int, starting_point: float, h_0: float, k_wave: float, folder_name: str) -> None:
         # Grid parameters
         self.h = h
         self.dim_x = dim_x
@@ -61,6 +61,9 @@ class ModelParam:
         # Fixed parameters, don't change
         self.mid = 1
         self.vi = "1"
+
+        # Saving parameter
+        self.folder_name = folder_name
 
 
 def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float,
