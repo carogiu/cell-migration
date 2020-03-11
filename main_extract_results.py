@@ -3,6 +3,7 @@ import dolfin
 from os import listdir
 from os.path import isfile, join
 
+
 # Imports
 from results.main_results import save_interface_and_peaks, array_exp_phase, array_exp_flow, interface, save_fig
 from model.model_common import mesh_from_dim
@@ -16,7 +17,7 @@ def retrieve_param(folder_name: str):
     :param folder_name: Name of the folder of the test
     :return: list of parameters
     """
-    file_param = "/Users/Caro/Documents/2. Cambridge/3. MPhil/4. Python code/cell-migration/results/Figures/" + folder_name + "/param.txt"
+    file_param = "results/Figures/" + folder_name + "/param.txt"
     file = open(file_param, 'r')
 
     i = 0
@@ -65,7 +66,7 @@ def extract_files(folder_name: str):
     :param folder_name: Name of the folder of the test
     :return: list of str, with the names of the files
     """
-    mypath = "/Users/Caro/Documents/2. Cambridge/3. MPhil/4. Python code/cell-migration/results/Figures/" + folder_name + "/Solutions"
+    mypath = "results/Figures/" + folder_name + "/Solutions/"
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
     onlyfiles.sort()
     t = int((len(onlyfiles) - 1) / 2)
