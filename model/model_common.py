@@ -35,8 +35,10 @@ def initiate_functions(space_ME: dolfin.function.functionspace.FunctionSpace, Ca
     :param vi: initial velocity
     :return: initiated functions
     """
+    # Initiate the phase and the instability
     phi_test, mu_test, du, u, phi, mu, u0, phi_0, mu_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0,
                                                                         k_wave=k_wave, starting_point=starting_point)
+    # Initiate the velocity and pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
     pressure = dolfin.Expression("x[0]> start ? theta*(dim_x/2 - x[0]) : theta*(dim_x/2 - start) + start - x[0]",
                                  degree=1, dim_x=dim_x, theta=theta, start=starting_point)
@@ -85,6 +87,7 @@ def main_solver(space_ME: dolfin.function.functionspace.FunctionSpace,
 
     # Update the value of phi(n), u(n), phi(n+1), mu(n+1)
     u0.vector()[:] = u.vector()
+    phi_0, mu_0 = dolfin.split(u0)
     phi, mu = dolfin.split(u)
     t_3 = time.time()
     print('Time to solve phase = ' + str(t_3 - t_1) + ' seconds')
