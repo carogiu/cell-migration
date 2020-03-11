@@ -27,6 +27,6 @@ def get_and_save_param(config):
 
     folder_name = save_param(h=h, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, n=n, dt=dt, theta=theta,
                              Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave)
-
-    return print(folder_name)
+    print(folder_name)
+    return folder_name
 

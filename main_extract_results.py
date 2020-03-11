@@ -20,6 +20,7 @@ def retrieve_param(folder_name: str):
     file = open(file_param, 'r')
 
     i = 0
+    # Saving all the parameters in the good variable
     for line in file:
         if i == 2:
             h = float(line[3:])
