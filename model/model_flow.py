@@ -1,6 +1,6 @@
 ### Packages
 import dolfin
-from ufl import dot, grad
+from ufl import dot, grad, inner
 import ufl
 
 ### Imports
@@ -106,6 +106,80 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     return u_flow
 
 
+def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y: int,
+                       w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
+                       mu: ufl.indexed.Indexed, vi: str, theta: float, alpha: float,
+                       Ca: float, v_previous: ufl.indexed.Indexed) -> dolfin.function.function.Function:
+    """
+    Solves the phase field problem, with the coupling, with inflow, no growth, no activity
+    :param mesh: mesh
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param w_flow: Function space
+    :param phi: Function, phase
+    :param mu: Function, chemical potential
+    :param vi: Expression, inflow
+    :param theta: friction ratio
+    :param alpha: activity
+    :param Ca: Capillary number
+    :param v_previous: previous solution for the velocity, used to calculate the norm
+    :return: solution
+    """
+    # Boundary conditions
+    bcs_flow, domain, boundaries = boundary_conditions_flow(w_flow=w_flow, vi=vi, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
+    dx = dolfin.dx(subdomain_data=domain)
+    ds = dolfin.ds(subdomain_data=boundaries)
+
+    # Continuous values
+    theta_p = theta_phi(theta=theta, phi=phi)
+    alpha_p = alpha * i_phi(phi=phi)
+
+    # Functions
+    du_flow = dolfin.TrialFunction(V=w_flow)
+    v_test, p_test = dolfin.TestFunctions(V=w_flow)
+
+    u_flow = dolfin.Function(w_flow)
+    velocity, pressure = dolfin.split(u_flow)
+    norm_v = dolfin.norm(v=v_previous, norm_type='L2', mesh=mesh) + dolfin.DOLFIN_EPS
+
+    # Problem
+    F_flow = (theta_p - alpha_p / norm_v) * dot(velocity, v_test) * dx + (1 / Ca) * phi * dot(v_test,
+                                                                                              grad(mu)) * dx + dot(
+        v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx - p_test * ds(1)
+    # no activity
+    # F_flow = theta_p * dot(velocity, v_test) * dx + (1 / Ca) * phi * dot(v_test, grad(mu)) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx - p_test * ds(1)
+
+    J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
+
+    # Non linear solver
+    problem_flow = dolfin.NonlinearVariationalProblem(F=F_flow, u=u_flow, bcs=bcs_flow, J=J_flow)
+    solver_flow = dolfin.NonlinearVariationalSolver(problem_flow)
+
+    # Solver parameters
+    prm = solver_flow.parameters
+    prm["newton_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["relaxation_parameter"] = 1.0
+    dolfin.parameters["form_compiler"]["optimize"] = True
+    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
+
+    dolfin.PETScOptions.set("ksp_type", "gmres")
+    dolfin.PETScOptions.set("ksp_monitor")
+    dolfin.PETScOptions.set("pc_type", "ilu")
+
+    prm["newton_solver"]["linear_solver"] = "mumps"
+    # prm["newton_solver"]["preconditioner"] = "ilu"
+    prm["newton_solver"]["krylov_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["krylov_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["krylov_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["krylov_solver"]["nonzero_initial_guess"] = True
+    prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
+    solver_flow.solve()
+
+    return u_flow
+
+
 ### CREATE BOUNDARIES
 def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace, vi: str, dim_x: int, dim_y: int,
                              mesh: dolfin.cpp.generation.RectangleMesh) -> [list, dolfin.cpp.mesh.MeshFunctionSizet,
@@ -145,6 +219,16 @@ def theta_phi(theta: float, phi: ufl.indexed.Indexed):
     """
     theta_p = .5 * ((1 - phi) + (1 + phi) * theta)
     return theta_p
+
+
+def i_phi(phi: ufl.indexed.Indexed):
+    """
+    Phase parameter, is 1 in active fluid and 0 in passive fluid
+    @param phi: Dolfin Function
+    @return: Dolfin Function
+    """
+    id_phi = .5 * (1 - phi)
+    return id_phi
 
 
 ### TESTS Functions

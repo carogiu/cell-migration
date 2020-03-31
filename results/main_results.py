@@ -47,6 +47,7 @@ def save_interface_and_peaks(arr_interface: np.ndarray, folder_name: str, time_s
     return
 
 
+
 def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.generation.RectangleMesh, nx: int,
                 ny: int, dim_x: int, dim_y: int, time: int, folder_name: str) -> None:
     """
@@ -139,13 +140,13 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
 
 
 # To save one array as a heat-map
-def save_fig(arr: np.ndarray, name: str, time: int, dim_x: int, dim_y: int, nx: int, ny: int, theta: float,
+def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: int, dim_y: int, nx: int, ny: int, theta: float,
              folder_name: str) -> None or np.ndarray:
     """
     To save one array as a heat-map
     :param arr: array
     :param name: string
-    :param time: int
+    :param time_simu: int
     :param dim_x: dimension in x
     :param dim_y: dimension in y
     :param nx : grid dimension
@@ -176,10 +177,11 @@ def save_fig(arr: np.ndarray, name: str, time: int, dim_x: int, dim_y: int, nx: 
 
     plt.imshow(arr, cmap=color_map, extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=v_min, vmax=v_max)
     plt.colorbar()
-    plt.title(name + ' for t=' + str(time))
+    plt.title(name + ' for t=' + str(time_simu))
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig('results/Figures/' + folder_name + "/" + name + '_' + str(time) + '.png')
+    file_name = 'results/Figures/' + folder_name + "/" + name + '_' + str(time_simu) + '.png'
+    plt.savefig(fname=file_name)
     plt.close(fig)
 
     if name == 'Phase':

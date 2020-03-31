@@ -18,7 +18,8 @@ class ModelParam:
     n :             int, number of time steps
     dt :            float, size of a time step
 
-    theta :         float, friction ration
+    theta :         float, friction ratio
+    alpha:          float, activity
     Cahn:           float, Cahn number
     Pe:             float, Peclet number
     Ca_star:        float, capillary number for classic model without the phase field (in our case, 1)
@@ -33,7 +34,7 @@ class ModelParam:
     vi :            Expression, inflow velocity (1)
     """
 
-    def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, Cahn: float,
+    def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, alpha: float, Cahn: float,
                  Pe: int, starting_point: float, h_0: float, k_wave: float, folder_name: str) -> None:
         # Grid parameters
         self.h = h
@@ -48,6 +49,7 @@ class ModelParam:
 
         # Model parameters
         self.theta = theta
+        self.alpha = alpha
         self.Cahn = Cahn
         self.Pe = Pe
         self.Ca_star = 1
@@ -66,7 +68,7 @@ class ModelParam:
         self.folder_name = folder_name
 
 
-def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float,
+def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float, alpha: float,
                Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float) -> str:
     """
     Saves the parameters in a text file + returns the name of the folder for other saves
@@ -77,7 +79,8 @@ def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: f
     :param ny: number of mesh element in direction y
     :param n: number of time steps
     :param dt: time step
-    :param theta: viscosity ration
+    :param theta: viscosity ratio
+    :param alpha: activity
     :param Cahn: Cahn number
     :param Pe: Peclet number
     :param Ca : Capillary number
@@ -102,12 +105,14 @@ def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: f
     os.makedirs(new_path)
     os.makedirs(new_path + '/Checks')
     file = open("results/Figures/" + folder_name + "/param.txt", "w")
-    file.write("Model 2 (slip, Ca, Pe, K) \n" + "Parameters: "
+    file.write("Model 3 (slip, Ca, Pe, K, activity) \n" + "Parameters: "
                + "\n h= " + str(h) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)
                + "\n nx= " + str(nx) + "\n ny= " + str(ny)
-               + "\n n= " + str(n) + "\n dt= " + str(dt) + "\n theta= " + str(theta)
+               + "\n n= " + str(n) + "\n dt= " + str(dt)
+               + "\n theta= " + str(theta)
                + "\n Cahn= " + str(Cahn) + "\n Pe= " + str(Pe) + "\n Ca= " + str(Ca)
                + "\n starting_point= " + str(starting_point)
-               + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave) + "\n sigma= " + str(sigma) + "\n q= " + str(q))
+               + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave) + "\n sigma= " + str(sigma) + "\n q= " + str(q)
+               + "\n alpha= " + str(alpha))
     file.close()
     return folder_name
