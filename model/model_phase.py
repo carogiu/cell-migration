@@ -32,8 +32,8 @@ class InitialConditions(dolfin.UserExpression):  # result is a dolfin Expression
             # random perturbation
             # h = np.random.randn(1) * Cahn
             # sin perturbation
-            dx = h_0 * np.sin(x[1] * k_wave)
-            dx_prime = h_0 * k_wave * np.cos(x[1] * k_wave)
+            dx = h_0 * np.cos(x[1] * k_wave)
+            dx_prime = - h_0 * k_wave * np.sin(x[1] * k_wave)
             phi = np.tanh((x[0] - start + dx) / (Cahn * np.sqrt(2)))
             values[0] = phi  # phi(0)
             values[1] = (Cahn * dx / np.sqrt(2)) * (k_wave ** 2) * (1 - phi ** 2) + dx_prime ** 2 * phi * (
