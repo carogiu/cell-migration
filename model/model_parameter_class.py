@@ -34,7 +34,7 @@ class ModelParam:
     vi :            Expression, inflow velocity (1)
     """
 
-    def __init__(self, h: float, dim_x: int, dim_y: int, n: int, dt: float, theta: float, alpha: float, Cahn: float,
+    def __init__(self, h: float, dim_x: float, dim_y: float, n: int, dt: float, theta: float, alpha: float, Cahn: float,
                  Pe: int, starting_point: float, h_0: float, k_wave: float, folder_name: str) -> None:
         # Grid parameters
         self.h = h
@@ -68,7 +68,7 @@ class ModelParam:
         self.folder_name = folder_name
 
 
-def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: float, theta: float, alpha: float,
+def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, dt: float, theta: float, alpha: float,
                Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float) -> str:
     """
     Saves the parameters in a text file + returns the name of the folder for other saves
@@ -89,8 +89,17 @@ def save_param(h: float, dim_x: int, dim_y: int, nx: int, ny: int, n: int, dt: f
     :param k_wave: wave number of the perturbation
     :return: string, name of the folder where files should be saved
     """
-    q = np.sqrt((theta - 1) / 3)
-    sigma = q * (theta - 1) / (theta + 1) - q ** 3 / (theta + 1)
+
+    if theta >= 1:
+        q = np.sqrt((theta - 1 + alpha) / 3)
+    else:
+        q = 0
+
+    if alpha < 1:
+        sigma = q * (theta - 1 + alpha) / (theta + np.sqrt(1 - alpha)) - q ** 3 / (theta + np.sqrt(1 - alpha))
+    else:
+        sigma = (alpha + theta - 1) * q / theta - q ** 3 / theta
+
     t = time.localtime()
     y, m, d = t.tm_year, t.tm_mon, t.tm_mday
     i = 1
