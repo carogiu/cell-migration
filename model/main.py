@@ -40,7 +40,6 @@ def main_model(config):
 
     # Dimensionless parameters
     vi = config.vi
-    mid = config.mid
 
     # Saving parameter
     folder_name = config.folder_name
@@ -53,17 +52,17 @@ def main_model(config):
     print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')  # 5e-4 on Mac 2e-4 on big Linux
     t1 = time.time()
 
-    # TODO : put a condition if alpha==0 or if alpha>0, but first verify that the results are the same with both methods
-    #  for alpha=0
-
     # Compute the model
-    # time_evolution(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow, theta=theta,
-    #                Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, vi=vi, mid=mid,
-    #                folder_name=folder_name)
 
-    time_evolution_with_activity(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
-                                 theta=theta, alpha=alpha, Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point,
-                                 h_0=h_0, k_wave=k_wave, vi=vi, mid=mid, folder_name=folder_name)
+    if alpha == 0:
+        time_evolution(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow, theta=theta,
+                       Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, vi=vi,
+                       folder_name=folder_name)
+    else:
+        time_evolution_with_activity(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
+                                     theta=theta, alpha=alpha, Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point,
+                                     h_0=h_0, k_wave=k_wave, vi=vi, folder_name=folder_name)
+
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 

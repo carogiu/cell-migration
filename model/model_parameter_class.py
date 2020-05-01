@@ -30,8 +30,7 @@ class ModelParam:
     h_0:            float, amplitude of the perturbation
     k_wave:         float, wave number of the perturbation
 
-    mid:            float, time scheme parameter (0.5)
-    vi :            Expression, inflow velocity (1)
+    vi :            Expression, inflow velocity (=1)
     """
 
     def __init__(self, h: float, dim_x: float, dim_y: float, n: int, dt: float, theta: float, alpha: float, Cahn: float,
@@ -60,8 +59,7 @@ class ModelParam:
         self.h_0 = h_0
         self.k_wave = k_wave
 
-        # Fixed parameters, don't change
-        self.mid = 1
+        # Fixed parameter, don't change
         self.vi = "1"
 
         # Saving parameter
@@ -112,7 +110,8 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
         new_path = r'results/Figures/' + folder_name
 
     os.makedirs(new_path)
-    os.makedirs(new_path + '/Checks')
+    # os.makedirs(new_path + '/Checks')
+    os.makedirs(new_path + '/Analysis')
     file = open("results/Figures/" + folder_name + "/param.txt", "w")
     file.write("Model 3 (slip, Ca, Pe, K, activity) \n" + "Parameters: "
                + "\n h= " + str(h) + "\n dim_x= " + str(dim_x) + "\n dim_y= " + str(dim_y)

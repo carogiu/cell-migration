@@ -24,7 +24,7 @@ def space_flow(mesh: dolfin.cpp.generation.RectangleMesh) -> dolfin.function.fun
     return w_flow
 
 
-def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y: int,
+def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
                     w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
                     mu: ufl.indexed.Indexed, vi: str, theta: float, Ca: float) -> dolfin.function.function.Function:
     """
@@ -40,19 +40,19 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     :param Ca: Capillary number
     :return: solution
     """
-    # boundary conditions
+    # Boundary conditions
     bcs_flow, domain, boundaries = boundary_conditions_flow(w_flow=w_flow, vi=vi, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
     dx = dolfin.dx(subdomain_data=domain)
     ds = dolfin.ds(subdomain_data=boundaries)
 
-    # continuous viscosity
+    # Continuous viscosity
     theta_p = theta_phi(theta=theta, phi=phi)
 
     # Functions
-    du_flow = dolfin.TrialFunction(V=w_flow)
-    v_test, p_test = dolfin.TestFunctions(V=w_flow)
+    du_flow = dolfin.TrialFunction(V=w_flow)  # Used only to calculate the Jacobian
 
-    u_flow = dolfin.Function(w_flow)
+    v_test, p_test = dolfin.TestFunctions(V=w_flow)
+    u_flow = dolfin.Function(w_flow)  # We use Function and not TrialFunction because the problem is non linear
     velocity, pressure = dolfin.split(u_flow)
 
     # Problem
@@ -85,10 +85,6 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
     solver_flow.solve()
 
-    # v_div, _ = dolfin.split(u_flow)
-    # if abs(div(v_div)) >= 10e-8:  # TODO : Correct calculation of div
-    #    raise ValueError('Divergence should not be higher than a certain threshold - Check Physics solutions')
-
     """
     # Linear solver
     problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow,
@@ -106,7 +102,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y
     return u_flow
 
 
-def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y: int,
+def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
                        w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
                        mu: ufl.indexed.Indexed, vi: str, theta: float, alpha: float,
                        Ca: float, v_previous: ufl.indexed.Indexed) -> dolfin.function.function.Function:
@@ -146,8 +142,6 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, di
     F_flow = (theta_p - alpha_p / norm_v) * dot(velocity, v_test) * dx + (1 / Ca) * phi * dot(v_test,
                                                                                               grad(mu)) * dx + dot(
         v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx - p_test * ds(1)
-    # no activity
-    # F_flow = theta_p * dot(velocity, v_test) * dx + (1 / Ca) * phi * dot(v_test, grad(mu)) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx - p_test * ds(1)
 
     J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
 
@@ -181,7 +175,7 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, di
 
 
 ### CREATE BOUNDARIES
-def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace, vi: str, dim_x: int, dim_y: int,
+def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace, vi: str, dim_x: float, dim_y: float,
                              mesh: dolfin.cpp.generation.RectangleMesh) -> [list, dolfin.cpp.mesh.MeshFunctionSizet,
                                                                             dolfin.cpp.mesh.MeshFunctionSizet]:
     """
@@ -229,34 +223,3 @@ def i_phi(phi: ufl.indexed.Indexed):
     """
     id_phi = .5 * (1 - phi)
     return id_phi
-
-
-### TESTS Functions
-"""
-#   Creates the function U for the problem of Stokes flow (U = u, p)
-def problem_stokes_flow(w_flow, vi):  # THIS IS WORKING
-    bcs = boundary_conditions_flow(w_flow, vi)
-    (velocity, pressure) = dolfin.TrialFunctions(w_flow)
-    (v_test, p_test) = dolfin.TestFunctions(w_flow)
-    f = dolfin.Constant((0.0, 0.0))
-    a_flow = inner(grad(velocity), grad(v_test)) * dx + div(v_test) * pressure * dx + p_test * div(velocity) * dx
-    L_flow = inner(f, v_test) * dx
-    U_flow = dolfin.Function(w_flow)
-    dolfin.solve(a_flow == L_flow, U_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
-                 form_compiler_parameters={"optimize": True})
-    return U_flow
-
-#     Partially solves the phase field with inflow vi, but no coupling term
-def flow_static_phase_no_mu(w_flow, vi, phi, theta):  # THIS IS WORKING
-    theta_p = theta_phi(theta, phi)
-    bcs = boundary_conditions_flow(w_flow, vi)
-    (velocity, pressure) = dolfin.TrialFunctions(w_flow)
-    (v_test, p_test) = dolfin.TestFunctions(w_flow)
-    f = dolfin.Constant(0.0)
-    a_flow = theta_p * dot(velocity, v_test) * dx - pressure * div(v_test) * dx + p_test * div(velocity) * dx
-    L_flow = f * p_test * dx
-    u_flow = dolfin.Function(w_flow)
-    dolfin.solve(a_flow == L_flow, u_flow, bcs=bcs, solver_parameters={"linear_solver": "lu"},
-                 form_compiler_parameters={"optimize": True})
-    return u_flow
-"""

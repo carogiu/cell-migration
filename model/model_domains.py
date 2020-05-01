@@ -54,8 +54,8 @@ class BD_bottom(dolfin.SubDomain):
         return on_boundary and dolfin.near(x0=x[1], x1=0, eps=1E-10)
 
 
-def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int,
-                  dim_y: int) -> [dolfin.cpp.mesh.MeshFunctionSizet, dolfin.cpp.mesh.MeshFunctionSizet]:
+def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float,
+                  dim_y: float) -> [dolfin.cpp.mesh.MeshFunctionSizet, dolfin.cpp.mesh.MeshFunctionSizet]:
     """
     Defines the domain and boundaries, marks the boundaries with labels (1) (2) and (3)
     :param mesh: mesh
