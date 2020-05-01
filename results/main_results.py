@@ -42,8 +42,6 @@ def save_interface_and_peaks(arr_interface: np.ndarray, folder_name: str, time_s
     # Save the peaks coordinates
     peaks_t, _ = find_peaks(arr_interface[:, 0], distance=(np.pi / (k_wave * h)), height=position_th + 0.8 * h_0)
     peaks_b, _ = find_peaks(-arr_interface[:, 0], distance=(np.pi / (k_wave * h)), height=0.8 * h_0 - position_th)
-    # peaks_t, _ = find_peaks(arr_interface[:, 0], height=position_th + 0.8 * h_0)
-    # peaks_b, _ = find_peaks(-arr_interface[:, 0], height=0.8*h_0 - position_th)
 
     peaks = np.concatenate((arr_interface[peaks_t, :], arr_interface[peaks_b, :]), axis=0)
     peaks = peaks[peaks[:, 1].argsort()][:, 0]
@@ -56,10 +54,10 @@ def save_interface_and_peaks(arr_interface: np.ndarray, folder_name: str, time_s
         writer.writerow(amplitude_with_time)
     return
 
+
 # To save one array as a heat-map
 def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: float, nx: int, ny: int, theta: float,
-             folder_name: str, k_wave: float, starting_point: float, dt: float, h_0: float,
-             h: float) -> None or np.ndarray:
+             folder_name: str) -> None or np.ndarray:
     """
     To save one array as a heat-map
     :param arr: array
@@ -82,12 +80,8 @@ def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: fl
         # plt.plot(arr_interface[:, 0], arr_interface[:, 1], ls=':', c='k')
         # peaks_t, _ = find_peaks(arr_interface[:, 0], distance=(np.pi / (k_wave * h)), height=position_th + 0.8 * h_0)
         # peaks_b, _ = find_peaks(-arr_interface[:, 0], distance=(np.pi / (k_wave * h)), height=0.8 * h_0 - position_th)
-
-        # peaks_t, _ = find_peaks(arr_interface[:, 0], height=position_th + 0.8 * h_0)
-        # peaks_b, _ = find_peaks(-arr_interface[:, 0], height=0.8*h_0 - position_th)
-
-        plt.plot(arr_interface[peaks_t, 0], arr_interface[peaks_t, 1], "x", c='g')
-        plt.plot(arr_interface[peaks_b, 0], arr_interface[peaks_b, 1], "x", c='k')
+        # plt.plot(arr_interface[peaks_t, 0], arr_interface[peaks_t, 1], "x", c='g')
+        # plt.plot(arr_interface[peaks_b, 0], arr_interface[peaks_b, 1], "x", c='k')
     elif name == 'Vy':
         v_min, v_max = -.5, +.5
         color_map = 'jet'

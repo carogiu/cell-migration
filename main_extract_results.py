@@ -4,7 +4,8 @@ from os import listdir
 from os.path import isfile, join
 
 # Imports
-from results.main_results import save_interface_and_peaks, array_exp_phase, array_exp_flow, interface, save_fig
+from results.main_results import save_interface_and_peaks, array_exp_phase, array_exp_flow, interface, save_fig, \
+    save_quiver
 from model.model_common import mesh_from_dim
 from model.model_phase import space_phase
 from model.model_flow import space_flow
@@ -25,9 +26,9 @@ def retrieve_param(folder_name: str):
         if i == 2:
             h = float(line[3:])
         if i == 3:
-            dim_x = int(line[7:])
+            dim_x = float(line[7:])
         if i == 4:
-            dim_y = int(line[7:])
+            dim_y = float(line[7:])
         if i == 5:
             nx = int(line[4:])
         if i == 6:
@@ -56,7 +57,7 @@ def retrieve_param(folder_name: str):
             q = float(line[3:])
         i += 1
     file.close()
-    return dim_x, dim_y, nx, ny, dt, theta, starting_point, h_0
+    return dim_x, dim_y, nx, ny, dt, theta, starting_point, h_0, k_wave, h
 
 
 def extract_files(folder_name: str):
@@ -83,7 +84,7 @@ def extract_for_phase(folder_name: str):
     :return:
     """
     files_phase, _ = extract_files(folder_name=folder_name)
-    dim_x, dim_y, nx, ny, dt, theta, starting_point, h_0 = retrieve_param(folder_name=folder_name)
+    dim_x, dim_y, nx, ny, dt, theta, starting_point, h_0, k_wave, h = retrieve_param(folder_name=folder_name)
     mesh = mesh_from_dim(nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
     space_ME = space_phase(mesh=mesh)
 
@@ -97,7 +98,7 @@ def extract_for_phase(folder_name: str):
         arr_phi, arr_mu = array_exp_phase(u=u, mesh=mesh, nx=nx, ny=ny)
         arr_interface = interface(arr_phi=arr_phi, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
         save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=i, dt=dt, h_0=h_0,
-                                 starting_point=starting_point)
+                                 starting_point=starting_point, k_wave=k_wave, h=h)
         save_fig(arr=arr_phi, name='Phase', time_simu=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, theta=theta,
                  folder_name=folder_name)
     return print('Phase extracted')
@@ -110,7 +111,7 @@ def extract_for_flow(folder_name: str):
     :return:
     """
     _, files_flow = extract_files(folder_name=folder_name)
-    dim_x, dim_y, nx, ny, dt, theta, starting_point, h_0 = retrieve_param(folder_name=folder_name)
+    dim_x, dim_y, nx, ny, dt, theta, starting_point, h_0, k_wave, h = retrieve_param(folder_name=folder_name)
     mesh = mesh_from_dim(nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
     w_flow = space_flow(mesh=mesh)
     for file in files_flow:
@@ -127,6 +128,8 @@ def extract_for_flow(folder_name: str):
                  folder_name=folder_name)
         save_fig(arr=arr_p, name='Pressure', time_simu=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, theta=theta,
                  folder_name=folder_name)
+        save_quiver(arr_ux=arr_ux, arr_uy=arr_uy, time_simu=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny,
+                    folder_name=folder_name, starting_point=starting_point, dt=dt)
     return print('Flow extracted')
 
 
