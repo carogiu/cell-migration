@@ -49,20 +49,21 @@ def main_model(config):
     space_ME = space_phase(mesh=mesh)
     w_flow = space_flow(mesh=mesh)
 
-    print('Expected computation time = ' + str(nx * ny * n * 5E-4 / 60) + ' minutes')  # 5e-4 on Mac 2e-4 on big Linux
+    print('Expected computation time = ' + str(nx * ny * n * 5.5E-4 / 60) + ' minutes')  # 5e-4 on Mac 2e-4 on big Linux
     t1 = time.time()
 
     # Compute the model
 
     if alpha == 0:
+        print('Simulation without activity')
         time_evolution(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow, theta=theta,
                        Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, vi=vi,
                        folder_name=folder_name)
     else:
+        print('Simulation with activity')
         time_evolution_with_activity(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
                                      theta=theta, alpha=alpha, Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point,
                                      h_0=h_0, k_wave=k_wave, vi=vi, folder_name=folder_name)
-
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 

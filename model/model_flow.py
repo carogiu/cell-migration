@@ -105,7 +105,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim
 def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
                        w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
                        mu: ufl.indexed.Indexed, vi: str, theta: float, alpha: float,
-                       Ca: float, v_previous: ufl.indexed.Indexed) -> dolfin.function.function.Function:
+                       Ca: float) -> dolfin.function.function.Function:
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
     :param mesh: mesh
@@ -118,7 +118,6 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
     :param theta: friction ratio
     :param alpha: activity
     :param Ca: Capillary number
-    :param v_previous: previous solution for the velocity, used to calculate the norm
     :return: solution
     """
     # Boundary conditions
@@ -136,12 +135,15 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
 
     u_flow = dolfin.Function(w_flow)
     velocity, pressure = dolfin.split(u_flow)
-    norm_v = dolfin.norm(v=v_previous, norm_type='L2', mesh=mesh) + dolfin.DOLFIN_EPS
+
+    # Norm of the velocity
+    norm_sq = dot(velocity, velocity)
+    unit_vect_velocity = velocity * ((norm_sq + dolfin.DOLFIN_EPS) ** (-0.5))
 
     # Problem
-    F_flow = (theta_p - alpha_p / norm_v) * dot(velocity, v_test) * dx + (1 / Ca) * phi * dot(v_test,
-                                                                                              grad(mu)) * dx + dot(
-        v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx - p_test * ds(1)
+    F_flow = theta_p * dot(velocity, v_test) * dx - alpha_p * dot(unit_vect_velocity, v_test) * dx + (
+            1 / Ca) * phi * dot(v_test, grad(mu)) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(
+        p_test)) * dx - p_test * ds(1)
 
     J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
 
@@ -188,13 +190,16 @@ def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace
     :return: array of boundary conditions
     """
     domain, boundaries = dom_and_bound(mesh=mesh, dim_x=dim_x, dim_y=dim_y)
-    # inflow and outflow of fluid
+
+    # Boundary conditions for the fluid (inflow and outflow)
     inflow = dolfin.Expression((vi, "0.0"), degree=2)
     bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 1)
-    # pressure out
+
+    # Boundary condition for the pressure
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
-    # boundary conditions
+
+    # Boundary conditions
     bcs_flow = [bc_v_left, bc_p_right]
 
     return bcs_flow, domain, boundaries

@@ -88,7 +88,7 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
     :return: string, name of the folder where files should be saved
     """
 
-    if theta >= 1:
+    if theta >= 1 - alpha:
         q = np.sqrt((theta - 1 + alpha) / 3)
     else:
         q = 0
@@ -96,7 +96,7 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
     if alpha < 1:
         sigma = q * (theta - 1 + alpha) / (theta + np.sqrt(1 - alpha)) - q ** 3 / (theta + np.sqrt(1 - alpha))
     else:
-        sigma = (alpha + theta - 1) * q / theta - q ** 3 / theta
+        sigma = 0
 
     t = time.localtime()
     y, m, d = t.tm_year, t.tm_mon, t.tm_mday

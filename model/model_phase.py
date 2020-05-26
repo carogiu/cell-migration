@@ -132,8 +132,7 @@ def problem_phase_implicit(space_ME: dolfin.function.functionspace.FunctionSpace
     prm["newton_solver"]["relaxation_parameter"] = 1.0
     dolfin.parameters["form_compiler"]["optimize"] = True
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
-    # solver_phase.solve()
-    solver_phase.solve(problem_phase, u_phase.vector())
+    solver_phase.solve()
     return u_phase
 
 
@@ -149,9 +148,11 @@ def boundary_conditions_phase(space_ME: dolfin.function.functionspace.FunctionSp
     :return: array of boundary conditions
     """
     domain, boundaries = dom_and_bound(mesh=mesh, dim_x=dim_x, dim_y=dim_y)
+
     # Boundary conditions for the phase
     bc_phi_left = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(-1.0), boundaries, 1)  # phi = -1 on the left (1)
     bc_phi_right = dolfin.DirichletBC(space_ME.sub(0), dolfin.Constant(1.0), boundaries, 2)  # phi = +1 on the right (2)
+
     # Boundary conditions for mu
     bc_mu_left = dolfin.DirichletBC(space_ME.sub(1), dolfin.Constant(0.0), boundaries, 1)  # mu = 0 on left and right
     bc_mu_right = dolfin.DirichletBC(space_ME.sub(1), dolfin.Constant(0.0), boundaries, 2)

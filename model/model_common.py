@@ -197,7 +197,7 @@ def initiate_with_activity(space_ME: dolfin.function.functionspace.FunctionSpace
     :return: initiated functions
     """
     # Initiate the phase and the instability
-    u0, phi_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0, k_wave=k_wave, starting_point=starting_point)
+    u0, phi_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0, k_wave=k_wave, starting_point=starting)
 
     # Initiate the velocity and pressure field
     velocity = dolfin.Expression((vi, "0.0"), degree=2)
@@ -247,7 +247,7 @@ def main_solver_with_activity(space_ME: dolfin.function.functionspace.FunctionSp
 
     # Finally, solve the flow
     u_flow = flow_with_activity(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi_0, mu=mu_0, vi=vi,
-                                theta=theta, alpha=alpha, Ca=Ca, v_previous=velocity)
+                                theta=theta, alpha=alpha, Ca=Ca)
     velocity, pressure = u_flow.split()
 
     # t_4 = time.time()
