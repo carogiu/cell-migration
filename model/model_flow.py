@@ -26,7 +26,7 @@ def space_flow(mesh: dolfin.cpp.generation.RectangleMesh) -> dolfin.function.fun
 
 def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
                     w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
-                    mu: ufl.indexed.Indexed, vi: str, theta: float, Ca: float) -> dolfin.function.function.Function:
+                    mu: ufl.indexed.Indexed, vi: int, theta: float, Ca: float) -> dolfin.function.function.Function:
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
     :param mesh: mesh
@@ -35,7 +35,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim
     :param w_flow: Function space
     :param phi: Function, phase
     :param mu: Function, chemical potential
-    :param vi: Expression, inflow
+    :param vi: int, inflow
     :param theta: friction ratio
     :param Ca: Capillary number
     :return: solution
@@ -57,7 +57,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim
 
     # Problem
     a_flow = theta_p * dot(velocity, v_test) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(p_test)) * dx
-    L_flow = p_test * ds(1) - (1 / Ca) * phi * dot(v_test, grad(mu)) * dx
+    L_flow = dolfin.Constant(vi) * p_test * ds(1) - dolfin.Constant(1 / Ca) * phi * dot(v_test, grad(mu)) * dx
 
     F_flow = a_flow - L_flow
     J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
@@ -104,7 +104,7 @@ def problem_coupled(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim
 
 def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
                        w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
-                       mu: ufl.indexed.Indexed, vi: str, theta: float, alpha: float,
+                       mu: ufl.indexed.Indexed, vi: int, theta: float, alpha: float,
                        Ca: float) -> dolfin.function.function.Function:
     """
     Solves the phase field problem, with the coupling, with inflow, no growth, no activity
@@ -114,7 +114,7 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
     :param w_flow: Function space
     :param phi: Function, phase
     :param mu: Function, chemical potential
-    :param vi: Expression, inflow
+    :param vi: int, inflow
     :param theta: friction ratio
     :param alpha: activity
     :param Ca: Capillary number
@@ -127,7 +127,7 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
 
     # Continuous values
     theta_p = theta_phi(theta=theta, phi=phi)
-    alpha_p = alpha * i_phi(phi=phi)
+    alpha_p = dolfin.Constant(alpha) * i_phi(phi=phi)
 
     # Functions
     du_flow = dolfin.TrialFunction(V=w_flow)
@@ -141,9 +141,9 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
     unit_vect_velocity = velocity * ((norm_sq + dolfin.DOLFIN_EPS) ** (-0.5))
 
     # Problem
-    F_flow = theta_p * dot(velocity, v_test) * dx - alpha_p * dot(unit_vect_velocity, v_test) * dx + (
-            1 / Ca) * phi * dot(v_test, grad(mu)) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(
-        p_test)) * dx - p_test * ds(1)
+    F_flow = theta_p * dot(velocity, v_test) * dx - alpha_p * dot(unit_vect_velocity, v_test) * dx + dolfin.Constant(
+        1 / Ca) * phi * dot(v_test, grad(mu)) * dx + dot(v_test, grad(pressure)) * dx - dot(velocity, grad(
+        p_test)) * dx - dolfin.Constant(vi) * p_test * ds(1)
 
     J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
 
@@ -177,7 +177,7 @@ def flow_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
 
 
 ### CREATE BOUNDARIES
-def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace, vi: str, dim_x: float, dim_y: float,
+def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace, vi: int, dim_x: float, dim_y: float,
                              mesh: dolfin.cpp.generation.RectangleMesh) -> [list, dolfin.cpp.mesh.MeshFunctionSizet,
                                                                             dolfin.cpp.mesh.MeshFunctionSizet]:
     """
@@ -192,31 +192,40 @@ def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace
     domain, boundaries = dom_and_bound(mesh=mesh, dim_x=dim_x, dim_y=dim_y)
 
     # Boundary conditions for the fluid (inflow and outflow)
-    inflow = dolfin.Expression((vi, "0.0"), degree=2)
+    inflow = dolfin.Expression(("vi", "0.0"), degree=2, vi=vi)
     bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 1)
 
     # Boundary condition for the pressure
     pressure_out = dolfin.Constant(0.0)
     bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
 
-    # Boundary conditions
-    bcs_flow = [bc_v_left, bc_p_right]
+    if vi == 0:
+        # No slip condition
+        v_null = dolfin.Expression(("0.0", "0.0"), degree=2)
+        bc_v_top = dolfin.DirichletBC(w_flow.sub(0), v_null, boundaries, 3)
+        bc_v_bot = dolfin.DirichletBC(w_flow.sub(0), v_null, boundaries, 4)
+
+        # Boundary conditions
+        bcs_flow = [bc_v_left, bc_p_right, bc_v_bot, bc_v_top]
+
+    else:
+        # Boundary conditions
+        bcs_flow = [bc_v_left, bc_p_right]
 
     return bcs_flow, domain, boundaries
 
 
 ### UTILITARIAN FUNCTIONS
 
-
 ### Transformation
 def theta_phi(theta: float, phi: ufl.indexed.Indexed):
     """
-    Continuous dimensionless friction coefficient
+    Continuous dimensionless friction coefficient (1 in the active fluid, theta in the passive fluid)
     @param theta: float, friction ratio
     @param phi: Dolfin Function
     @return: Dolfin Function
     """
-    theta_p = .5 * ((1 - phi) + (1 + phi) * theta)
+    theta_p = dolfin.Constant(.5) * ((dolfin.Constant(1) - phi) + (dolfin.Constant(1) + phi) * dolfin.Constant(theta))
     return theta_p
 
 
@@ -226,5 +235,5 @@ def i_phi(phi: ufl.indexed.Indexed):
     @param phi: Dolfin Function
     @return: Dolfin Function
     """
-    id_phi = .5 * (1 - phi)
+    id_phi = dolfin.Constant(.5) * (dolfin.Constant(1) - phi)
     return id_phi
