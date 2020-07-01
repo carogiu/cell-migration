@@ -25,7 +25,7 @@ def mesh_from_dim(nx: int, ny: int, dim_x: float, dim_y: float) -> dolfin.cpp.ge
 # No activity
 
 def initiate_functions(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: float, h_0: float, k_wave: float,
-                       starting_point: float, dim_x: float, theta: float, vi: str):
+                       starting_point: float, dim_x: float, theta: float, vi: int):
     """
     Initiates the test and trial functions for the phase, and the initial flow
     :param space_ME: function space of the phase
@@ -43,37 +43,9 @@ def initiate_functions(space_ME: dolfin.function.functionspace.FunctionSpace, Ca
     u0, phi_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0, k_wave=k_wave, starting_point=starting_point)
 
     # Initiate the velocity and pressure field
-    velocity = dolfin.Expression((vi, "0.0"), degree=2)
+    velocity = dolfin.Expression(("vi", "0.0"), degree=2, vi=vi)
     pressure = dolfin.Expression("x[0]> start ? theta*(dim_x/2 - x[0]) : theta*(dim_x/2 - start) + start - x[0]",
                                  degree=1, dim_x=dim_x, theta=theta, start=starting_point)
-
-    # Test with small perturbation everywhere
-    # q = dolfin.sqrt((theta - 1) / 3)
-    # sigma = ((theta - 1 - q ** 2) / (theta + 1)) * q
-
-    # dh = 'h_0*cos(k_wave*x[1])'
-    # dp = '-(sigma/q)*h_0*cos(k_wave*x[1])'
-    # dp_prime = '(theta*sigma*h_0/q)*cos(k_wave*x[1])'
-    # dvx = 'sigma*h_0*cos(k_wave*x[1])'
-    # dvy = '-sigma*h_0*sin(k_wave*x[1])'
-    # dvy_prime = 'sigma*h_0*sin(k_wave*x[1])'
-
-    # velocity_0 = dolfin.Expression((vi, "0.0"), degree=2)
-    # pressure_0 = dolfin.Expression("x[0]> start ? theta*(dim_x/2 - x[0]) : theta*(dim_x/2 - start) + start - x[0]",
-    #                                degree=1, dim_x=dim_x, theta=theta, start=starting_point)
-
-    # dv_tot = dolfin.Expression(("start-h_0 < x[0] & x[0]< start + h_0 ? sigma*h_0*cos(k_wave*x[1]) : 0",
-    #                             "start-h_0 < x[0] & x[0]< start + h_0*cos(k_wave*x[1]) ? -sigma*h_0*sin(k_wave*x[1])
-    #                             : start + h_0*cos(k_wave*x[1]) < x[0] & x[0]< start + h_0
-    #                             ? sigma*h_0*sin(k_wave*x[1]) : 0"),
-    #                            degree=2, start=starting_point, h_0=h_0, sigma=sigma, q=q, k_wave=k_wave)
-    # dp_tot = dolfin.Expression(
-    #     "start-h_0 < x[0] & x[0]< start + h_0*cos(k_wave*x[1]) ? -(sigma/q)*h_0*cos(k_wave*x[1])
-    #     : start + h_0*cos(k_wave*x[1]) < x[0] & x[0]< start + h_0 ? (theta*sigma*h_0/q)*cos(k_wave*x[1]) : 0",
-    #     degree=1, start=starting_point, h_0=h_0, sigma=sigma, q=q, k_wave=k_wave, theta=theta)
-
-    # velocity = velocity_0 + dv_tot
-    # pressure = pressure_0 + dp_tot
 
     return u0, phi_0, velocity, pressure
 
@@ -81,7 +53,7 @@ def initiate_functions(space_ME: dolfin.function.functionspace.FunctionSpace, Ca
 def main_solver(space_ME: dolfin.function.functionspace.FunctionSpace,
                 w_flow: dolfin.function.functionspace.FunctionSpace, dim_x: float, dim_y: float,
                 mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity, dt: float, Pe: float, Cahn: float,
-                theta: float, Ca: float, vi: str):
+                theta: float, Ca: float, vi: int):
     """
     Main solver for the phase and the flow
     :param space_ME: function space for the phase
@@ -128,7 +100,7 @@ def main_solver(space_ME: dolfin.function.functionspace.FunctionSpace,
 def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y: int, dt: float, n: int,
                    space_ME: dolfin.function.functionspace.FunctionSpace,
                    w_flow: dolfin.function.functionspace.FunctionSpace, theta: float, Cahn: float, Pe: float, Ca: float,
-                   starting_point: float, h_0: float, k_wave: float, vi: str, folder_name: str) -> None:
+                   starting_point: float, h_0: float, k_wave: float, vi: int, folder_name: str) -> None:
     """
     :param mesh: dolfin mesh
     :param dim_y: dimension in the direction of y
@@ -182,7 +154,7 @@ def time_evolution(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y:
 # With activity
 
 def initiate_with_activity(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: float, h_0: float,
-                           k_wave: float, starting: float, dim_x: int, theta: float, alpha: float, vi: str):
+                           k_wave: float, starting: float, dim_x: int, theta: float, alpha: float, vi: int):
     """
     Initiates the test and trial functions for the phase, and the initial flow
     :param space_ME: function space of the phase
@@ -200,7 +172,7 @@ def initiate_with_activity(space_ME: dolfin.function.functionspace.FunctionSpace
     u0, phi_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0, k_wave=k_wave, starting_point=starting)
 
     # Initiate the velocity and pressure field
-    velocity = dolfin.Expression((vi, "0.0"), degree=2)
+    velocity = dolfin.Expression(("vi", "0.0"), degree=2, vi=vi)
     pressure = dolfin.Expression(
         "x[0]> start ? theta*(dim_x/2 - x[0]) : ((1-alpha)*(start-x[0]) + theta*(dim_x/2 - start))",
         degree=1, dim_x=dim_x, theta=theta, start=starting, alpha=alpha)
@@ -211,7 +183,7 @@ def initiate_with_activity(space_ME: dolfin.function.functionspace.FunctionSpace
 def main_solver_with_activity(space_ME: dolfin.function.functionspace.FunctionSpace,
                               w_flow: dolfin.function.functionspace.FunctionSpace, dim_x: int, dim_y: int,
                               mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity, dt: float, Pe: float,
-                              Cahn: float, theta: float, alpha: float, Ca: float, vi: str):
+                              Cahn: float, theta: float, alpha: float, Ca: float, vi: int):
     """
     Main solver for the phase and the flow
     :param space_ME: function space for the phase
@@ -260,7 +232,7 @@ def time_evolution_with_activity(mesh: dolfin.cpp.generation.RectangleMesh, dim_
                                  space_ME: dolfin.function.functionspace.FunctionSpace,
                                  w_flow: dolfin.function.functionspace.FunctionSpace, theta: float, alpha: float,
                                  Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float,
-                                 vi: str, folder_name: str) -> None:
+                                 vi: int, folder_name: str) -> None:
     """
     :param mesh: dolfin mesh
     :param dim_y: dimension in the direction of y

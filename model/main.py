@@ -30,6 +30,7 @@ def main_model(config):
     # Model parameters
     theta = config.theta
     alpha = config.alpha
+    vi = config.vi
     Cahn = config.Cahn
     Pe = config.Pe
     Ca = config.Ca
@@ -37,9 +38,6 @@ def main_model(config):
 
     # Initial perturbation parameters
     h_0, k_wave = config.h_0, config.k_wave
-
-    # Dimensionless parameters
-    vi = config.vi
 
     # Saving parameter
     folder_name = config.folder_name

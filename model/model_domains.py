@@ -63,11 +63,11 @@ def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float,
     :param dim_y: dimension in the direction of y
     :return: domain and boundaries
     """
-    # define interior domain
+    # Define interior domain
     domain = dolfin.MeshFunction(value_type="size_t", mesh=mesh, dim=2)  # used to define a grid cell (dimension 2)
     domain.set_all(0)
 
-    # define the subdomains of the boundaries
+    # Define the subdomains of the boundaries
     boundaries = dolfin.MeshFunction(value_type="size_t", mesh=mesh, dim=1)  # used to define the facets (dimension 1)
     boundaries.set_all(0)
     dom_left = BD_left(dim_x)
@@ -76,6 +76,6 @@ def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float,
     dom_bot = BD_bottom()
     dom_left.mark(boundaries, 1)  # left is marked as (1)
     dom_right.mark(boundaries, 2)  # right is marked as (2)
-    dom_top.mark(boundaries, 3)  # tob is marked as (3)
+    dom_top.mark(boundaries, 3)  # top is marked as (3)
     dom_bot.mark(boundaries, 4)  # bottom is marked as (4)
     return domain, boundaries
