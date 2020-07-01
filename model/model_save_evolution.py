@@ -1,6 +1,5 @@
 ### Packages
 import dolfin
-from pylab import *
 
 
 ### Main save
