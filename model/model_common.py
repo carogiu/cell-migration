@@ -18,7 +18,7 @@ def mesh_from_dim(nx: int, ny: int, dim_x: float, dim_y: float) -> dolfin.cpp.ge
     :param dim_y : dimensions in y direction
     :return: mesh
     """
-    mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x / 2, 0.0), dolfin.Point(dim_x / 2, dim_y), nx, ny)
+    mesh = dolfin.RectangleMesh(dolfin.Point(-dim_x / 2, -dim_y/2), dolfin.Point(dim_x / 2, dim_y/2), nx, ny)
     return mesh
 
 

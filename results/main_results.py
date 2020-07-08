@@ -98,7 +98,7 @@ def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: fl
         v_min, v_max = -2, 2
         color_map = 'jet'
 
-    plt.imshow(arr, cmap=color_map, extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=v_min, vmax=v_max)
+    plt.imshow(arr, cmap=color_map, extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2], vmin=v_min, vmax=v_max)
     plt.colorbar()
     plt.title(name + ' for t=' + str(time_simu))
     plt.xlabel('x')
@@ -132,7 +132,7 @@ def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: f
     :return:
     """
     X = np.linspace(-dim_x / 2, dim_x / 2, nx + 1)
-    Y = np.linspace(0, dim_y, ny + 1)
+    Y = np.linspace(-dim_y / 2, dim_y / 2, ny + 1)
     X, Y = np.meshgrid(X, Y)
 
     n_tot = X.shape[0] * X.shape[1]
@@ -163,7 +163,7 @@ def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: f
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
     ax.quiver(X[::2], Y[::2], Ux_normed[::2], Uy_normed[::2], color=cm(norm(M[::2])), pivot='tail', headwidth=2)
-    ax.plot(np.ones(ny + 1) * pos, np.linspace(0, dim_y, ny + 1), ls=':', c='r')
+    ax.plot(np.ones(ny + 1) * pos, np.linspace(-dim_y / 2, dim_y / 2, ny + 1), ls=':', c='r')
     ax.set(xlabel='x', ylabel='y')
     plt.colorbar(sm)
     plt.title('Velocity field for t=' + str(time_simu))
@@ -294,13 +294,13 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
 
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    plt.imshow(arr_Delta, cmap='gnuplot2', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=-10, vmax=0)
+    plt.imshow(arr_Delta, cmap='gnuplot2', extent=[-dim_x / 2, dim_x / 2, dim_y / 2, dim_y / 2], vmin=-10, vmax=0)
     plt.colorbar()
-    # plt.imshow(G, cmap='binary', extent=[-dim_x / 2, dim_x / 2, 0, dim_y])
-    # plt.imshow(label_im, cmap=newcmp, extent=[-dim_x / 2, dim_x / 2, 0, dim_y])
-    # plt.contour(label_im, [0.1], linewidths=0.1, colors='r', extent=[-dim_x / 2, dim_x / 2, dim_y, 0])
+    # plt.imshow(G, cmap='binary', extent=[-dim_x / 2, dim_x / 2, -dim_y/2, dim_y/2])
+    # plt.imshow(label_im, cmap=newcmp, extent=[-dim_x / 2, dim_x / 2, -dim_y/2, dim_y/2])
+    # plt.contour(label_im, [0.1], linewidths=0.1, colors='r', extent=[-dim_x / 2, dim_x / 2, dim_y/2, -dim_y/2])
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
-    ax.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(0, dim_y))
+    ax.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(-dim_y / 2, dim_y / 2))
     plt.title('Delta criterion for t=' + str(time_simu))
     file_name = 'results/Figures/' + folder_name + '/Delta_vortex_' + str(time_simu) + '.png'
     plt.savefig(fname=file_name, dpi=500)
@@ -388,10 +388,10 @@ def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: in
     # Angles
     ax1 = plt.subplot2grid((3, 5), (0, 0), colspan=4, rowspan=3)
     ax1.set_aspect('equal')
-    plt.imshow(orientation, cmap='hsv', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=-np.pi, vmax=np.pi)
+    plt.imshow(orientation, cmap='hsv', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2], vmin=-np.pi, vmax=np.pi)
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
-    plt.contour(label_im, [0.1], linewidths=0.1, colors='black', extent=[-dim_x / 2, dim_x / 2, dim_y, 0])
-    ax1.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(0, dim_y))
+    plt.contour(label_im, [0.1], linewidths=0.1, colors='black', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2])
+    ax1.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(-dim_y / 2, dim_y / 2))
     plt.title('Angle for t=' + str(time_simu))
 
     # Color wheel
@@ -441,7 +441,7 @@ def save_norm(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: f
         writer.writerow(norms_with_time)
 
     fig = plt.figure()
-    plt.imshow(norm_v, cmap='bwr', extent=[-dim_x / 2, dim_x / 2, 0, dim_y], vmin=0, vmax=5)
+    plt.imshow(norm_v, cmap='bwr', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2], vmin=0, vmax=5)
     plt.colorbar()
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
     plt.title('Norm of velocity for t=' + str(time_simu))
@@ -471,14 +471,14 @@ def save_streamlines(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, d
     """
 
     X = np.linspace(-dim_x / 2, dim_x / 2, nx + 1)
-    Y = np.linspace(0, dim_y, ny + 1)
+    Y = np.linspace(-dim_y / 2, dim_y / 2, ny + 1)
 
     speed = np.sqrt(np.power(arr_ux, 2) + np.power(arr_uy, 2))
 
     # Seeding points
     N = ny + 1
     start_x = np.ones(N) * (-dim_x / 2)
-    start_y = np.linspace(0, dim_y, N)
+    start_y = np.linspace(-dim_y / 2, dim_y / 2, N)
     start = np.zeros((2 * N, 2))
     start[:N, 0] = start_x
     start[:N, 1] = start_y
@@ -496,7 +496,7 @@ def save_streamlines(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, d
                   norm=norm)
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='r', linewidth=0.5)
     plt.colorbar(sm)
-    ax.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(0, dim_y))
+    ax.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(-dim_y / 2, dim_y / 2))
     plt.title('Streamlines for t=' + str(time_simu))
     file_name = 'results/Figures/' + folder_name + "/Streamlines_" + str(time_simu) + '.png'
     plt.savefig(fname=file_name, dpi=500)
@@ -536,10 +536,10 @@ def interface_width(arr_phi: np.ndarray, folder_name: str, nx: int, ny: int, dim
 
     # Convert indexes to coordinates
     lim_sup[:, 0] = (lim_sup[:, 0] - ((nx + 1) / 2)) * dim_x / (nx + 1)
-    lim_sup[:, 1] = lim_sup[:, 1] * dim_y / (ny + 1)
+    lim_sup[:, 1] = (lim_sup[:, 1] - ((ny + 1) / 2)) * dim_y / (ny + 1)
 
     lim_inf[:, 0] = (lim_inf[:, 0] - ((nx + 1) / 2)) * dim_x / (nx + 1)
-    lim_inf[:, 1] = lim_inf[:, 1] * dim_y / (ny + 1)
+    lim_inf[:, 1] = (lim_inf[:, 1] - ((ny + 1) / 2)) * dim_y / (ny + 1)
 
     # Find the width of the interface, the mean width and its STD
     width = lim_sup[:, 0] - lim_inf[:, 0]
@@ -570,7 +570,7 @@ def interface(arr_phi: np.ndarray, nx: int, ny: int, dim_x: float, dim_y: float)
         arr_interface[ny - j, :] = [i, j]
     arr_interface = np.asarray(arr_interface)
     arr_interface[:, 0] = (arr_interface[:, 0] - ((nx + 1) / 2)) * dim_x / (nx + 1)
-    arr_interface[:, 1] = arr_interface[:, 1] * dim_y / (ny + 1)
+    arr_interface[:, 1] = (arr_interface[:, 1] - ((ny + 1) / 2)) * dim_y / (ny + 1)
 
     return arr_interface
 
@@ -673,7 +673,7 @@ def check_div_v(velocity: dolfin.function.function.Function, mesh: dolfin.cpp.ge
     ax = axes([0, 0, 1, 1], frameon=False)
     ax.set_axis_off()
     ax.set_xlim(-dim_x / 2, dim_x / 2)
-    ax.set_ylim(0, dim_y)
+    ax.set_ylim(-dim_y/2, dim_y/2)
     plt.xlabel('x')
     plt.ylabel('y')
     plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')

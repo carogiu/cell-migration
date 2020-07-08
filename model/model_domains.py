@@ -42,16 +42,20 @@ class BD_top(dolfin.SubDomain):
     def inside(self, x, on_boundary):
         d_y = self.dim_y
 
-        return on_boundary and dolfin.near(x0=x[1], x1=d_y, eps=1E-10)
+        # return on_boundary and dolfin.near(x0=x[1], x1=d_y, eps=1E-10)
+        return on_boundary and dolfin.near(x0=x[1], x1=d_y / 2, eps=1E-14)
 
 
 class BD_bottom(dolfin.SubDomain):
 
-    def __init__(self, **kwargs):
+    def __init__(self, dim_y, **kwargs):
+        self.dim_y = dim_y
         super().__init__(**kwargs)
 
     def inside(self, x, on_boundary):
-        return on_boundary and dolfin.near(x0=x[1], x1=0, eps=1E-10)
+        d_y = self.dim_y
+        # return on_boundary and dolfin.near(x0=x[1], x1=0, eps=1E-10)
+        return on_boundary and dolfin.near(x0=x[1], x1=-d_y / 2, eps=1E-14)
 
 
 def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float,
@@ -73,7 +77,7 @@ def dom_and_bound(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float,
     dom_left = BD_left(dim_x)
     dom_right = BD_right(dim_x)
     dom_top = BD_top(dim_y)
-    dom_bot = BD_bottom()
+    dom_bot = BD_bottom(dim_y)
     dom_left.mark(boundaries, 1)  # left is marked as (1)
     dom_right.mark(boundaries, 2)  # right is marked as (2)
     dom_top.mark(boundaries, 3)  # top is marked as (3)
