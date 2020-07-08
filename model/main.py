@@ -7,6 +7,8 @@ from model.model_common import mesh_from_dim, time_evolution, time_evolution_wit
 from model.model_phase import space_phase
 from model.model_flow import space_flow
 
+from model.unique_solver import space_common, time_evolution_general
+
 ### Constants
 dolfin.parameters["form_compiler"]["optimize"] = True
 dolfin.parameters["form_compiler"]["cpp_optimize"] = True
@@ -44,24 +46,30 @@ def main_model(config):
 
     # Create Mesh
     mesh = mesh_from_dim(nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
-    space_ME = space_phase(mesh=mesh)
-    w_flow = space_flow(mesh=mesh)
+    # space_ME = space_phase(mesh=mesh)
+    # w_flow = space_flow(mesh=mesh)
+    mixed_space = space_common(mesh=mesh)
 
     print('Expected computation time = ' + str(nx * ny * n * 5.5E-4 / 60) + ' minutes')  # 5e-4 on Mac 2e-4 on big Linux
     t1 = time.time()
 
     # Compute the model
 
-    if alpha == 0:
-        print('Simulation without activity')
-        time_evolution(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow, theta=theta,
-                       Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, vi=vi,
-                       folder_name=folder_name)
-    else:
-        print('Simulation with activity')
-        time_evolution_with_activity(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
-                                     theta=theta, alpha=alpha, Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point,
-                                     h_0=h_0, k_wave=k_wave, vi=vi, folder_name=folder_name)
+    time_evolution_general(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, mixed_space=mixed_space, theta=theta,
+                           Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, vi=vi,
+                           alpha=alpha, folder_name=folder_name)
+
+    # if alpha == 0:
+    #    print('Simulation without activity')
+    #    time_evolution(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow, theta=theta,
+    #                   Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, vi=vi,
+    #                   folder_name=folder_name)
+    # else:
+    #    print('Simulation with activity')
+    #    time_evolution_with_activity(mesh=mesh, dim_x=dim_x, dim_y=dim_y, dt=dt, n=n, space_ME=space_ME, w_flow=w_flow,
+    #                                 theta=theta, alpha=alpha, Cahn=Cahn, Pe=Pe, Ca=Ca, starting_point=starting_point,
+    #                                 h_0=h_0, k_wave=k_wave, vi=vi, folder_name=folder_name)
+
     t2 = time.time()
     print('Total computation time = ' + str((t2 - t1) / 60) + ' minutes')
 
