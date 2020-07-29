@@ -25,6 +25,7 @@ class ModelParam:
     Pe:             float, Peclet number
     Ca_star:        float, capillary number for classic model without the phase field (in our case, 1)
     Ca:             float, Capillary number (with the phase field correction)
+    model_type:     str, type of model (Darcy or Toner-Tu)
 
     starting_point: where the interface is at the beginning
 
@@ -34,7 +35,8 @@ class ModelParam:
     """
 
     def __init__(self, h: float, dim_x: float, dim_y: float, n: int, dt: float, theta: float, alpha: float, vi: int,
-                 Cahn: float, Pe: int, starting_point: float, h_0: float, k_wave: float, folder_name: str) -> None:
+                 Cahn: float, Pe: int, starting_point: float, h_0: float, k_wave: float, folder_name: str,
+                 model_type: str) -> None:
         # Grid parameters
         self.h = h
         self.dim_x = dim_x
@@ -55,6 +57,7 @@ class ModelParam:
         self.Ca_star = 1
         self.Ca = 2 * np.sqrt(2) * Cahn * self.Ca_star / 3
         self.starting_point = starting_point
+        self.model_type = model_type
 
         # Initial perturbation parameters
         self.h_0 = h_0
@@ -65,7 +68,8 @@ class ModelParam:
 
 
 def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, dt: float, theta: float, alpha: float,
-               vi: int, Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float) -> str:
+               vi: int, Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float,
+               model: str) -> str:
     """
     Saves the parameters in a text file + returns the name of the folder for other saves
     :param h: smallest element of the grid
@@ -84,10 +88,11 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
     :param starting_point: where the interface is at the beginning
     :param h_0: amplitude of the perturbation
     :param k_wave: wave number of the perturbation
+    :param model: type of model (Darcy or Toner-Tu)
     :return: string, name of the folder where files should be saved
     """
 
-    if vi == 0:  # No inflow: no preferred wave length, sigma<0
+    if vi == 0:  # No inflow: no preferred wave length, sigma<0 (not calculated yet for Toner-Tu)
         q = 0
         sigma = -(k_wave ** 3 - 1) / theta
 
@@ -95,11 +100,18 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
         if alpha < 1:  # Low activity regime
             if theta >= 1 - alpha:  # Fingers can grow
                 q = np.sqrt((theta - 1 + alpha) / 3)
-                sigma = q * (theta - 1 + alpha) / (theta + np.sqrt(1 - alpha)) - q ** 3 / (theta + np.sqrt(1 - alpha))
+                if model == 'darcy':
+                    sigma = q * (theta - 1 + alpha - q ** 2) / (theta + np.sqrt(1 - alpha))
+                else:  # Toner-Tu
+                    sigma = q * (theta - 1 + alpha - q ** 2) / (np.sqrt(3) * theta + np.sqrt((3 - alpha) * (1 - alpha)))
             else:  # Fingers cannot grow: no preferred wave length, sigma<0
                 q = 0
-                sigma = (alpha - 1 + theta - k_wave ** 2) * k_wave / (theta + np.sqrt(1 - alpha))
-        else:  # High activity regime, no solution
+                if model == 'darcy':
+                    sigma = (alpha - 1 + theta - k_wave ** 2) * k_wave / (theta + np.sqrt(1 - alpha))
+                else:  # Toner-Tu
+                    sigma = (alpha - 1 + theta - k_wave ** 2) * k_wave / (
+                            np.sqrt(3) * theta + np.sqrt((3 - alpha) * (1 - alpha)))
+        else:  # High activity regime, no analytical solution
             q = 0
             sigma = 0
 
@@ -116,7 +128,6 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
         new_path = r'results/Figures/' + folder_name
 
     os.makedirs(new_path)
-    # os.makedirs(new_path + '/Checks')
     os.makedirs(new_path + '/Analysis')
 
     # Save the parameters
@@ -130,6 +141,6 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
                + "\n starting_point= " + str(starting_point)
                + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave)
                + "\n sigma= " + str(sigma) + "\n q= " + str(q)
-               + "\n alpha= " + str(alpha) + "\n vi= " + str(vi))
+               + "\n alpha= " + str(alpha) + "\n vi= " + str(vi) + "\n model= " + str(model))
     file.close()
     return folder_name

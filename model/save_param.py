@@ -24,11 +24,13 @@ def get_and_save_param(config):
     Pe = config.Pe
     Ca = config.Ca
     starting_point = config.starting_point
+    model = config.model_type
 
     # Initial perturbation parameters
     h_0, k_wave = config.h_0, config.k_wave
 
     folder_name = save_param(h=h, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny, n=n, dt=dt, theta=theta, Cahn=Cahn, Pe=Pe,
-                             Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, alpha=alpha, vi=vi)
+                             Ca=Ca, starting_point=starting_point, h_0=h_0, k_wave=k_wave, alpha=alpha, vi=vi,
+                             model=model)
     print(folder_name)
     return folder_name
