@@ -18,8 +18,11 @@
    
    - model_domains creates the domain and boundaries
    
-   - model_flow and model_phase contain the function to solve the model
+   - model_flow and model_phase contain the function to solve the model (the phase field and the flow are solved separately here)
    - model_common contains common functions to initiate and solve the problem over time
+   
+   - unique_solver can be used alternatively of model_flow and model_phase (the phae field and the flow are solved together here)
+   
    - main extracts the parameters and solves the problem with them
    
    - model_save_evolution saves the results in HDF5 files
