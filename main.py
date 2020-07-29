@@ -12,28 +12,29 @@ config1 = ModelParam(
     # Grid parameters
     h=(1 / 2) ** 5,  # Smallest element of the grid (power 6,7 or 8)
     dim_x=4,  # Dimensions of the grid
-    dim_y=4,  # 2 * (2 * np.pi) / (np.sqrt((20 - 1 + 0) / 3)),  # 6 waves
+    dim_y=4,  # (2 + 0.5) * (2 * np.pi) / (np.sqrt((20 - 1 + 0.5) / 3)),
 
     # Time parameters
-    n=30,  # int(1e3),  # Number of time increments
+    n=10,  # int(1e3),  # Number of time increments
     dt=5e-3,  # Time increment
 
     # Make sure that dt<h*h*Pe/2 and dt<h/v
 
     # Model parameters
-    theta=5,  # Friction ratio beta'/beta , must be bigger than 1-alpha to grow
+    theta=20,  # Friction ratio beta'/beta , must be bigger than 1-alpha to grow
     alpha=0,  # Dimensionless activity, must be <1
-    vi=0,  # Inflow velocity, 0 or 1
+    vi=1,  # Inflow velocity, 0 or 1
     Cahn=0.2,  # Cahn number (need 0.5h < Cahn < 2h)
-    Pe=0.2,  # Peclet number, should be big (about 1 / Cahn) , can try up to 200
+    Pe=50,  # Peclet number, should be big (about 1 / Cahn) , can try up to 200
     starting_point=0,  # where the interface is at the beginning
+    model_type='toner-tu',  # 'darcy' or 'toner-tu'
 
     # Initial perturbation parameters
     h_0=0,  # 0.15,  # Amplitude of the initial perturbation
-    k_wave=0,  # np.sqrt((20 - 1 + 0) / 3),  # Wave number of the initial perturbation (theta-1+alpha)
+    k_wave=0,  # np.sqrt((20 - 1 + 0.5) / 3),  # Wave number of the initial perturbation (theta-1+alpha)
 
     # Saving parameter
-    folder_name='1-7-2020#10'
+    folder_name='29-7-2020#12'
 )
 
 ### Call function
@@ -46,6 +47,7 @@ folder_name1 = get_and_save_param(config1)
 # folder_name5 = get_and_save_param(config5)
 # folder_name6 = get_and_save_param(config6)
 # folder_name7 = get_and_save_param(config7)
+# folder_name8 = get_and_save_param(config8)
 
 # Update folder_name to be the appropriate one
 # This does not work when using MPI, must put the appropriate folder_name in ModelParam
@@ -57,6 +59,7 @@ config1.folder_name = folder_name1
 # config5.folder_name = folder_name5
 # config6.folder_name = folder_name6
 # config7.folder_name = folder_name7
+# config8.folder_name = folder_name8
 
 # Run the simulation
 main_model(config1)
@@ -66,3 +69,4 @@ main_model(config1)
 # main_model(config5)
 # main_model(config6)
 # main_model(config7)
+# main_model(config8)
