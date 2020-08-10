@@ -87,8 +87,9 @@ def extract_files(folder_name: str):
 
 def extract_for_phase(folder_name: str):
     """
-    From the solution files, save all the figures for the phase , extract the coordinates of the interface and the
-    coordinates of the peaks
+    From the solution files, save all the figures for the phase and the chemical potential,
+    extract the coordinates of the interface and save them,
+    saves the width of the interface
     :param folder_name: Name of the folder of the test
     :return:
     """
@@ -100,7 +101,7 @@ def extract_for_phase(folder_name: str):
 
     for file in files_phase:
         file_path = "results/Figures/" + folder_name + "/Solutions/" + file
-        if not ('._' in file_path):
+        if not ('._' in file_path) and not ('.DS' in file_path):
             i = int(file[11:-3])
             u = dolfin.Function(space_ME)
             input_file = dolfin.HDF5File(mesh.mpi_comm(), file_path, 'r')
@@ -111,9 +112,9 @@ def extract_for_phase(folder_name: str):
             save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=i, dt=dt, h_0=h_0,
                                      starting_point=starting_point, k_wave=k_wave, h=h)
             save_fig(arr=arr_phi, name='Phase', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                     folder_name=folder_name, arr_interface=arr_interface)
+                     folder_name=folder_name, arr_interface=arr_interface, dt=dt)
             save_fig(arr=arr_mu, name='Chemical_potential', time_simu=i, dim_x=dim_x, dim_y=dim_y,
-                     theta=theta, folder_name=folder_name, arr_interface=arr_interface)
+                     theta=theta, folder_name=folder_name, arr_interface=arr_interface, dt=dt)
             interface_width(arr_phi=arr_phi, folder_name=folder_name, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
                             time_simu=i, dt=dt)
     return print('Phase extracted')
@@ -134,7 +135,7 @@ def extract_for_flow(folder_name: str):
 
     for file in files_flow:
         file_path = "results/Figures/" + folder_name + "/Solutions/" + file
-        if not ('._' in file_path):
+        if not ('._' in file_path) and not ('.DS' in file_path):
             if not ('Phi' in file_path):
                 i = int(file[8:-3])
                 u_flow = dolfin.Function(w_flow)
@@ -152,27 +153,33 @@ def extract_for_flow(folder_name: str):
                 arr_phi, arr_mu = array_exp_phase(u=u_phase, mesh=mesh, nx=nx, ny=ny)
                 arr_interface = interface(arr_phi=arr_phi, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y)
 
+                # Save the figures
                 save_fig(arr=arr_ux, name='Vx', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                         folder_name=folder_name, arr_interface=arr_interface)
+                         folder_name=folder_name, arr_interface=arr_interface, dt=dt)
                 save_fig(arr=arr_uy, name='Vy', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                         folder_name=folder_name, arr_interface=arr_interface)
+                         folder_name=folder_name, arr_interface=arr_interface, dt=dt)
                 save_fig(arr=arr_p, name='Pressure', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                         folder_name=folder_name, arr_interface=arr_interface)
+                         folder_name=folder_name, arr_interface=arr_interface, dt=dt)
                 # save_quiver(arr_ux=arr_ux, arr_uy=arr_uy, time_simu=i, dim_x=dim_x, dim_y=dim_y, nx=nx, ny=ny,
-                #             folder_name=folder_name, starting_point=starting_point, dt=dt)
+                #             folder_name=folder_name, arr_interface=arr_interface, dt=dt)
                 # Delta_criterion(u_flow=u_flow, mesh=mesh, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time_simu=i,
-                #                 arr_interface=arr_interface, folder_name=folder_name)
+                #                 arr_interface=arr_interface, folder_name=folder_name,dt=dt)
                 # velocity_orientation(arr_ux=arr_ux, arr_uy=arr_uy, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
-                #                       time_simu=i,arr_interface=arr_interface, folder_name=folder_name)
+                #                      time_simu=i, arr_interface=arr_interface, folder_name=folder_name, dt=dt)
                 # save_norm(arr_ux=arr_ux, arr_uy=arr_uy, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time_simu=i,
-                #           arr_interface=arr_interface, folder_name=folder_name)
+                #           arr_interface=arr_interface, folder_name=folder_name,dt=dt)
                 # save_streamlines(arr_ux=arr_ux, arr_uy=arr_uy, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time_simu=i,
-                #                  arr_interface=arr_interface, folder_name=folder_name)
+                #                  arr_interface=arr_interface, folder_name=folder_name, dt=dt)
 
     return print('Flow extracted')
 
 
 def extract(folder_name: str):
+    """
+    From the solution files, save all the figures (to use when we used the second version of the solver)
+    :param folder_name: Name of the folder of the test
+    :return:
+    """
     # List of files
     mypath = "results/Figures/" + folder_name + "/Solutions/"
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
@@ -186,7 +193,7 @@ def extract(folder_name: str):
 
     for file in onlyfiles:
         file_path = "results/Figures/" + folder_name + "/Solutions/" + file
-        if not ('._' in file_path):
+        if not ('._' in file_path) and not ('.DS' in file_path):
             i = int(file[10:-3])
             u = dolfin.Function(mixed_space)
             input_file = dolfin.HDF5File(mesh.mpi_comm(), file_path, 'r')
@@ -205,30 +212,30 @@ def extract(folder_name: str):
             save_interface_and_peaks(arr_interface=arr_interface, folder_name=folder_name, time_simu=i, dt=dt,
                                      h_0=h_0, starting_point=starting_point, k_wave=k_wave, h=h)
             save_fig(arr=arr_phi, name='Phase', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                     folder_name=folder_name, arr_interface=arr_interface)
+                     folder_name=folder_name, arr_interface=arr_interface, dt=dt)
             save_fig(arr=arr_mu, name='Chemical_potential', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                     folder_name=folder_name, arr_interface=arr_interface)
+                     folder_name=folder_name, arr_interface=arr_interface, dt=dt)
             interface_width(arr_phi=arr_phi, folder_name=folder_name, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y,
                             time_simu=i, dt=dt)
 
             # Flow
             save_fig(arr=arr_ux, name='Vx', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta, folder_name=folder_name,
-                     arr_interface=arr_interface)
+                     arr_interface=arr_interface, dt=dt)
             save_fig(arr=arr_uy, name='Vy', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta, folder_name=folder_name,
-                     arr_interface=arr_interface)
+                     arr_interface=arr_interface, dt=dt)
             save_fig(arr=arr_p, name='Pressure', time_simu=i, dim_x=dim_x, dim_y=dim_y, theta=theta,
-                     folder_name=folder_name, arr_interface=arr_interface)
-            save_norm(arr_ux=arr_ux, arr_uy=arr_uy, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time_simu=i,
-                      arr_interface=arr_interface, folder_name=folder_name)
+                     folder_name=folder_name, arr_interface=arr_interface, dt=dt)
+            # save_norm(arr_ux=arr_ux, arr_uy=arr_uy, nx=nx, ny=ny, dim_x=dim_x, dim_y=dim_y, time_simu=i,
+            #           arr_interface=arr_interface, folder_name=folder_name,dt=dt)
 
     return
 
 
-simulations = ['29-7-2020#1']
+simulations = ['8-8-2020#1']
 for x in simulations:
     print('Extracting...')
     f_name = str(x)
-    # extract_for_phase(folder_name=folder_name)
-    # extract_for_flow(folder_name=folder_name)
+    # extract_for_phase(folder_name=f_name)
+    # extract_for_flow(folder_name=f_name)
     extract(folder_name=f_name)
     print('Extracted')

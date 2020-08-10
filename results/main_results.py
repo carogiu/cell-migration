@@ -61,7 +61,7 @@ def save_interface_and_peaks(arr_interface: np.ndarray, folder_name: str, time_s
 
 # To save one array as a heat-map
 def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: float, theta: float,
-             arr_interface: np.ndarray, folder_name: str) -> None or np.ndarray:
+             arr_interface: np.ndarray, folder_name: str, dt: float) -> None or np.ndarray:
     """
     To save one array as a color map
     :param arr: array
@@ -72,6 +72,7 @@ def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: fl
     :param theta: viscosity ratio
     :param arr_interface: contains the coordinates of the interface (ny x 2)
     :param folder_name: string
+    :param dt: time step
     :return:
     """
     color_map = 'seismic'
@@ -88,16 +89,16 @@ def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: fl
         v_min, v_max = -1, 3  # -2, 4
         color_map = 'jet'
     elif name == 'Pressure':
-        v_min, v_max = 0, (theta + 1) * dim_x / 2 - (theta - 1) * 0  # (theta+1)*dim_x/2 - (theta-1)*start
+        v_min, v_max = 0, (theta + 1) * dim_x / 2 - (theta - 1) * (-1)  # (theta+1)*dim_x/2 - (theta-1)*start
         color_map = 'jet'
     elif name == 'Chemical_potential':
-        v_min, v_max = -0.5, 0.5
+        v_min, v_max = -0.1, 0.1  # -0.5, 0.5
         color_map = 'jet'
 
     plt.imshow(arr, cmap=color_map, extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2], vmin=v_min, vmax=v_max)
     plt.colorbar()
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
-    plt.title(name + ' for t=' + str(time_simu))
+    plt.title(name + '\n t=' + str(int(time_simu * dt * 1000000) / 1000000))
     plt.xlabel('x')
     plt.ylabel('y')
     file_name = 'results/Figures/' + folder_name + "/" + name + '_' + str(time_simu) + '.png'
@@ -108,10 +109,9 @@ def save_fig(arr: np.ndarray, name: str, time_simu: int, dim_x: float, dim_y: fl
 
 
 def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: float, dim_y: float, nx: int, ny: int,
-                folder_name: str, starting_point, dt):
+                folder_name: str, arr_interface: np.ndarray, dt: float):
     """
-    Saves the velocity as a quiver plot. Size of the arrow is 1, but color of the arrow indicates the value of
-    the norm of the velocity
+    Saves the velocity as a quiver plot.The colour of the arrow indicates the value of the norm of the velocity
     :param arr_ux: values of vx
     :param arr_uy: values of vx
     :param time_simu: time of the simulation
@@ -120,8 +120,8 @@ def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: f
     :param nx: size of the mesh in the direction of x
     :param ny: size of the mesh in the direction of y
     :param folder_name: name of the folder where to save the values
+    :param arr_interface: contains the coordinates of the interface (ny x 2)
     :param dt: time step
-    :param starting_point: where the simulation starts
 
     :return:
     """
@@ -131,21 +131,15 @@ def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: f
 
     n_tot = X.shape[0] * X.shape[1]
 
-    pos = starting_point + dt * time_simu
-
-    M = np.hypot(arr_ux, arr_uy) * np.sign(arr_ux)
-    Norm = np.hypot(arr_ux, arr_uy)
-
-    Ux_normed = np.divide(arr_ux, Norm)
-    Uy_normed = np.divide(arr_uy, Norm)
+    M = np.hypot(arr_ux, arr_uy)
 
     X = X.reshape(n_tot)
     Y = Y.reshape(n_tot)
     M = M.reshape(n_tot)
-    Ux_normed = Ux_normed.reshape(n_tot)
-    Uy_normed = Uy_normed.reshape(n_tot)
+    Ux = arr_ux.reshape(n_tot)
+    Uy = arr_uy.reshape(n_tot)
 
-    norm_ = matplotlib.colors.Normalize(vmin=-1, vmax=3)  # alpha <1 -> (0.25,1.75), alpha >=1 (-1,3)
+    norm_ = matplotlib.colors.Normalize(vmin=0.8, vmax=1.4)  # alpha <1 -> (0.25,1.75), alpha >=1 (-1,3)
 
     # choose a colormap
     cm_ = matplotlib.cm.jet
@@ -154,15 +148,20 @@ def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: f
     sm = matplotlib.cm.ScalarMappable(cmap=cm_, norm=norm_)
     sm.set_array([])
 
+    arrow_step = 15
+
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    ax.quiver(X[::2], Y[::2], Ux_normed[::2], Uy_normed[::2], color=cm_(norm_(M[::2])), pivot='tail', headwidth=2)
-    ax.plot(np.ones(ny + 1) * pos, np.linspace(-dim_y / 2, dim_y / 2, ny + 1), ls=':', c='r')
+    plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
+    ax.quiver(X[::arrow_step], Y[::arrow_step], Ux[::arrow_step], Uy[::arrow_step], color=cm_(norm_(M[::arrow_step])),
+              pivot='tail', headwidth=3, scale=15)
     ax.set(xlabel='x', ylabel='y')
+    ax.set_ylim([-2, 3])
+    ax.set_xlim([-2, 2])
     plt.colorbar(sm)
-    plt.title('Velocity field for t=' + str(time_simu))
+    plt.title('Velocity field \n t=' + str(int(time_simu * dt * 1000000) / 1000000))
     file_name = 'results/Figures/' + folder_name + "/Velocity_field_" + str(time_simu) + '.png'
-    plt.savefig(fname=file_name, dpi=2000)
+    plt.savefig(fname=file_name, dpi=500)
     plt.close(fig)
 
     return
@@ -170,7 +169,7 @@ def save_quiver(arr_ux: np.ndarray, arr_uy: np.ndarray, time_simu: int, dim_x: f
 
 def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.generation.RectangleMesh, nx: int,
                     ny: int, dim_x: float, dim_y: float, time_simu: int, arr_interface: np.ndarray,
-                    folder_name: str) -> None:
+                    folder_name: str, dt: float) -> None:
     """
     From the velocity field, compute the Delta criterion to find the vortex. Saves the size of the vortexes in a csv
     file. Saves the Delta criterion as a figure (can be black and white or with intermediate colors).
@@ -186,6 +185,7 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     :param time_simu: time of the simulation
     :param arr_interface: array, contains the coordinates of the interface (ny x 2)
     :param folder_name: name of the folder where to save the values
+    :param dt: time step
     :return:
     """
     # Delta criterion
@@ -193,9 +193,9 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     w_int = dolfin.FunctionSpace(mesh, element_int)
     velocity, _ = u_flow.split()
 
-    Delta = (dolfin.Dx(velocity[0], 0) + dolfin.Dx(velocity[1], 1)) ** 2 \
-        - 4 * (dolfin.Dx(velocity[0], 0) * dolfin.Dx(velocity[1], 1)
-               - dolfin.Dx(velocity[0], 1) * dolfin.Dx(velocity[1], 0))
+    Delta = (dolfin.Dx(velocity[0], 0) + dolfin.Dx(velocity[1], 1)) ** 2 - 4 * (
+            dolfin.Dx(velocity[0], 0) * dolfin.Dx(velocity[1], 1)
+            - dolfin.Dx(velocity[0], 1) * dolfin.Dx(velocity[1], 0))
     Delta = dolfin.project(Delta, w_int)
 
     arr_Delta = arr_exp_pressure(pressure=Delta, mesh=mesh, nx=nx, ny=ny)
@@ -208,6 +208,7 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
 
     label_im, nb_labels = ndimage.label(G, structure=np.ones((3, 3)))
 
+    """
     # Remove straight lines
     for i in range(1, nb_labels):
         mask = (label_im == i)
@@ -221,7 +222,7 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     # Recount the labels
     label_im[label_im > 0] = 1
     label_im, nb_labels = ndimage.label(label_im, structure=np.ones((3, 3)))
-    """
+    
     # Remove 1D lines between domains
     for i in range(1, nb_labels):
         mask = (label_im == i)
@@ -254,7 +255,7 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     # Recount the labels
     label_im[label_im > 0] = 1
     label_im, nb_labels = ndimage.label(label_im)
-    """
+
     # Remove too small areas
     sizes = ndimage.sum(G, label_im, range(nb_labels + 1))
     mask_size = sizes < 5
@@ -264,6 +265,7 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     # Recount the labels
     label_im[label_im > 0] = 1
     label_im, nb_labels = ndimage.label(label_im, structure=np.ones((3, 3)))
+    """
 
     # Save the size of the domains
     sizes = ndimage.sum(G, label_im, range(nb_labels + 1))
@@ -295,7 +297,7 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     # plt.contour(label_im, [0.1], linewidths=0.1, colors='r', extent=[-dim_x / 2, dim_x / 2, dim_y/2, -dim_y/2])
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
     ax.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(-dim_y / 2, dim_y / 2))
-    plt.title('Delta criterion for t=' + str(time_simu))
+    plt.title('Delta criterion for t=' + str(int(time_simu * dt * 1000000) / 1000000))
     file_name = 'results/Figures/' + folder_name + '/Delta_vortex_' + str(time_simu) + '.png'
     plt.savefig(fname=file_name, dpi=500)
     plt.close(fig)
@@ -303,26 +305,26 @@ def Delta_criterion(u_flow: dolfin.function.function.Function, mesh: dolfin.cpp.
     return
 
 
-def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: float, dim_y: float,
-                         time_simu: int, arr_interface: np.ndarray, folder_name: str):
+def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, dim_x: float, dim_y: float,
+                         time_simu: int, arr_interface: np.ndarray, folder_name: str, dt: float):
     """
     From the velocity, compute the angle and save the mean and the std of the angles in the active fluid. Draws the
     contour of areas in the active part where the fluid is going backwards (vx<0) (saves it in a csv file). Saves a
     figure with the angles, the contour lines and a color wheel for the angles.
     :param arr_ux: values of vx
     :param arr_uy: values of vx
-    :param nx: size of the mesh in the direction of x
-    :param ny: size of the mesh in the direction of y
     :param dim_x: dimension of the mesh in the direction of x
     :param dim_y: dimension of the mesh in the direction of y
     :param time_simu: time of the simulation
     :param arr_interface: array, contains the coordinates of the interface (ny x 2)
     :param folder_name: name of the folder where to save the values
+    :param dt: time step
     :return:
     """
     orientation = np.arccos(np.divide(arr_ux, np.hypot(arr_ux, arr_uy)))
     orientation[arr_uy <= 0] = -orientation[arr_uy <= 0]  # to have signed angles
 
+    """
     # Where vx<0
     G = np.zeros((ny + 1, nx + 1))
     G[arr_ux >= 0] = 0
@@ -350,6 +352,7 @@ def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: in
     with open(file_name, 'a') as file:
         writer = csv.writer(file, delimiter=' ')
         writer.writerow(area_with_time)
+    """
 
     # angles = []
     # x_array = np.linspace(-dim_x / 2, dim_x / 2, nx + 1)
@@ -373,7 +376,7 @@ def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: in
     # To plot
 
     # For the color wheel
-    x_val = np.arange(-np.pi, np.pi, 0.01)
+    x_val = np.arange(-np.pi, np.pi, 0.001)
     y_val = np.ones_like(x_val)
     norm_ = matplotlib.colors.Normalize(-np.pi, np.pi)
 
@@ -384,13 +387,13 @@ def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: in
     ax1.set_aspect('equal')
     plt.imshow(orientation, cmap='hsv', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2], vmin=-np.pi, vmax=np.pi)
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
-    plt.contour(label_im, [0.1], linewidths=0.1, colors='black', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2])
+    # plt.contour(label_im, [0.1], linewidths=0.1, colors='black', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2])
     ax1.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(-dim_y / 2, dim_y / 2))
-    plt.title('Angle for t=' + str(time_simu))
+    plt.title('Angle for t=' + str(int(time_simu * dt * 1000000) / 1000000))
 
     # Color wheel
     ax2 = plt.subplot2grid((3, 5), (0, 4), polar=True)
-    ax2.scatter(x_val, y_val, c=x_val, s=300, cmap='hsv', norm=norm_, linewidths=0)
+    ax2.scatter(x_val, y_val, c=x_val, s=50, cmap='hsv', norm=norm_, linewidths=0)
     ax2.set_yticks([])
 
     file_name = 'results/Figures/' + folder_name + '/Angles_' + str(time_simu) + '.png'
@@ -401,7 +404,7 @@ def velocity_orientation(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: in
 
 
 def save_norm(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: float, dim_y: float,
-              time_simu: int, arr_interface: np.ndarray, folder_name: str):
+              time_simu: int, arr_interface: np.ndarray, folder_name: str, dt: float):
     """
     Computes the norm of the velocity at each point of the mesh, saves the norms in a csv file and as a figure
     :param arr_ux: values of vx
@@ -413,6 +416,7 @@ def save_norm(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: f
     :param time_simu: time of the simulation
     :param arr_interface: contains the coordinates of the interface (ny x 2)
     :param folder_name: name of the folder where to save the values
+    :param dt: time step
     :return:
     """
     norm_v = np.sqrt(np.power(arr_ux, 2) + np.power(arr_uy, 2))
@@ -438,7 +442,7 @@ def save_norm(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: f
     plt.imshow(norm_v, cmap='bwr', extent=[-dim_x / 2, dim_x / 2, -dim_y / 2, dim_y / 2], vmin=0, vmax=5)
     plt.colorbar()
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='green', linewidth=0.5)
-    plt.title('Norm of velocity for t=' + str(time_simu))
+    plt.title('Norm of velocity for t=' + str(int(time_simu * dt * 1000000) / 1000000))
     plt.xlabel('x')
     plt.ylabel('y')
     file_name = 'results/Figures/' + folder_name + '/Norm_' + str(time_simu) + '.png'
@@ -449,7 +453,7 @@ def save_norm(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: f
 
 
 def save_streamlines(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, dim_x: float, dim_y: float,
-                     time_simu: int, arr_interface: np.ndarray, folder_name: str):
+                     time_simu: int, arr_interface: np.ndarray, folder_name: str, dt: float):
     """
     Computes some streamlines
     :param arr_ux: values of vx
@@ -461,6 +465,7 @@ def save_streamlines(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, d
     :param time_simu: time of the simulation
     :param arr_interface: array, contains the coordinates of the interface (ny x 2)
     :param folder_name: name of the folder where to save the values
+    :param dt: time step
     :return:
     """
 
@@ -479,8 +484,8 @@ def save_streamlines(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, d
     start[N:, 0] = arr_interface[:, 0]
     start[N:, 1] = arr_interface[:, 1]
 
-    cm_ = 'cool'
-    norm_ = matplotlib.colors.Normalize(vmin=0, vmax=5)
+    cm_ = 'jet'
+    norm_ = matplotlib.colors.Normalize(vmin=0.7, vmax=1.3)
     sm = matplotlib.cm.ScalarMappable(cmap=cm_, norm=norm_)
     sm.set_array([])
 
@@ -491,7 +496,7 @@ def save_streamlines(arr_ux: np.ndarray, arr_uy: np.ndarray, nx: int, ny: int, d
     plt.plot(arr_interface[:, 0], arr_interface[:, 1], c='r', linewidth=0.5)
     plt.colorbar(sm)
     ax.set(xlabel='x', ylabel='y', xlim=(-dim_x / 2, dim_x / 2), ylim=(-dim_y / 2, dim_y / 2))
-    plt.title('Streamlines for t=' + str(time_simu))
+    plt.title('Streamlines for t=' + str(int(time_simu * dt * 1000000) / 1000000))
     file_name = 'results/Figures/' + folder_name + "/Streamlines_" + str(time_simu) + '.png'
     plt.savefig(fname=file_name, dpi=500)
     plt.close(fig)
@@ -660,14 +665,14 @@ def phase_LSA(nx, ny, dim_x, start, vi, i, dt, Cahn, d_phi):
 ### Hydrodynamic tests
 # Not used anymore, should check if still works
 
-def check_div_v(velocity: dolfin.function.function.Function, dim_x: float, dim_y: float, time: int,
+def check_div_v(velocity: dolfin.function.function.Function, dim_x: float, dim_y: float, time_simu: int,
                 folder_name: str) -> None:
     """
     Save div(v)
     :param velocity: dolfin function for the velocity
     :param dim_x: dimension in the direction of x
     :param dim_y: dimension in the direction of y
-    :param time: time of the simulation
+    :param time_simu: time of the simulation
     :param folder_name: name of the folder where to save the files
     :return:
     """
@@ -675,14 +680,14 @@ def check_div_v(velocity: dolfin.function.function.Function, dim_x: float, dim_y
     p = dolfin.plot(dolfin.div(velocity))
     p.set_clim(-.5, .5)
     fig.colorbar(p, boundaries=[-.5, .5], cmap='jet')
-    plt.title('Divergence for t=' + str(time))
+    plt.title('Divergence for t=' + str(time_simu))
     ax = axes([0, 0, 1, 1], frameon=False)
     ax.set_axis_off()
     ax.set_xlim(-dim_x / 2, dim_x / 2)
     ax.set_ylim(-dim_y / 2, dim_y / 2)
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time) + '.png')
+    plt.savefig('results/Figures/' + folder_name + "/Checks/Divergence_" + str(time_simu) + '.png')
     plt.close(fig)
     """
     tot_div = np.zeros(1)
@@ -696,8 +701,8 @@ def check_div_v(velocity: dolfin.function.function.Function, dim_x: float, dim_y
 
 
 def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.function.function.Function,
-                u: dolfin.function.function.Function, theta: float, Ca: float, dim_x: float, dim_y: float, time: int,
-                folder_name: str) -> None:
+                u: dolfin.function.function.Function, theta: float, Ca: float, dim_x: float, dim_y: float,
+                time_simu: int, folder_name: str) -> None:
     """
     Check the hydrodynamic relation far from the interface
     :param velocity: dolfin function for the velocity
@@ -707,7 +712,7 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
     :param Ca: Capillary number
     :param dim_x: dimension in the direction of x
     :param dim_y: dimension in the direction of y
-    :param time: time of the simulation
+    :param time_simu: time of the simulation
     :param folder_name: name of the folder where to save the files
     :return:
     """
@@ -719,27 +724,27 @@ def check_hydro(velocity: dolfin.function.function.Function, pressure: dolfin.fu
     plot_hydro_x = dolfin.plot(hydro[0])
     plot_hydro_x.set_clim(-.1, .1)
     fig.colorbar(plot_hydro_x, boundaries=[-.1, .1], cmap='jet')
-    plt.title('Hydro_x for t=' + str(time))
+    plt.title('Hydro_x for t=' + str(time_simu))
     ax = axes([0, 0, 1, 1], frameon=False)
     ax.set_axis_off()
     ax.set_xlim(-dim_x / 2, dim_x / 2)
     ax.set_ylim(0, dim_y)
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_x_" + str(time) + '.png')
+    plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_x_" + str(time_simu) + '.png')
     plt.close(fig)
 
     fig = plt.figure()
     plot_hydro_y = dolfin.plot(hydro[1])
     plot_hydro_y.set_clim(-.01, .01)
     fig.colorbar(plot_hydro_y, boundaries=[-.01, .01], cmap='jet')
-    plt.title('Hydro_y for t=' + str(time))
+    plt.title('Hydro_y for t=' + str(time_simu))
     ax = axes([0, 0, 1, 1], frameon=False)
     ax.set_axis_off()
     ax.set_xlim(-dim_x / 2, dim_x / 2)
     ax.set_ylim(0, dim_y)
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_y_" + str(time) + '.png')
+    plt.savefig('results/Figures/' + folder_name + "/Checks/Hydro_y_" + str(time_simu) + '.png')
     plt.close(fig)
     return

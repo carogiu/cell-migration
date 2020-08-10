@@ -12,29 +12,32 @@ config1 = ModelParam(
     # Grid parameters
     h=(1 / 2) ** 5,  # Smallest element of the grid (power 6,7 or 8)
     dim_x=4,  # Dimensions of the grid
-    dim_y=4,  # (2 + 0.5) * (2 * np.pi) / (np.sqrt((20 - 1 + 0.5) / 3)),
+    dim_y=3 * (2 * np.pi) / (np.sqrt((20 - 1 + 0) / 3)),
 
     # Time parameters
-    n=10,  # int(1e3),  # Number of time increments
+    n=200,  # int(1e3),  # Number of time increments
     dt=5e-3,  # Time increment
 
-    # Make sure that dt<h*h*Pe/2 and dt<h/v
+    # Make sure that dt<h/v
 
     # Model parameters
     theta=20,  # Friction ratio beta'/beta , must be bigger than 1-alpha to grow
-    alpha=0,  # Dimensionless activity, must be <1
+    alpha=0,  # Dimensionless activity, must be <1 to work
     vi=1,  # Inflow velocity, 0 or 1
-    Cahn=0.2,  # Cahn number (need 0.5h < Cahn < 2h)
-    Pe=50,  # Peclet number, should be big (about 1 / Cahn) , can try up to 200
+    k=0,  # Growth parameter (0.1-10)
+    Cahn=0.2,  # Cahn number
+    Pe=50,  # Peclet number, should be big (about 1 / Cahn)
     starting_point=0,  # where the interface is at the beginning
-    model_type='toner-tu',  # 'darcy' or 'toner-tu'
+    model_type='darcy',  # 'darcy' or 'toner-tu'
 
     # Initial perturbation parameters
-    h_0=0,  # 0.15,  # Amplitude of the initial perturbation
-    k_wave=0,  # np.sqrt((20 - 1 + 0.5) / 3),  # Wave number of the initial perturbation (theta-1+alpha)
+    h_0=0.15,  # Amplitude of the initial perturbation
+    k_wave=np.sqrt((20 - 1 + 0) / 3),  # Wave number of the initial perturbation
+    # (theta-1+alpha) without division
+    # (theta-1)*k*d_0 with division with d_0 = dim_x/2 + starting_point
 
     # Saving parameter
-    folder_name='29-7-2020#12'
+    folder_name='10-8-2020#1'
 )
 
 ### Call function
