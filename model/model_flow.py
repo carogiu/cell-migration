@@ -86,20 +86,6 @@ def flow_passive_darcy(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, 
     prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
     solver_flow.solve()
 
-    """
-    # Linear solver
-    problem_flow = dolfin.LinearVariationalProblem(a=a_flow, L=L_flow, u=u_flow, bcs=bcs_flow,
-                                                   form_compiler_parameters={"optimize": True, "cpp_optimize": True})
-    solver_flow = dolfin.LinearVariationalSolver(problem_flow)
-    solver_flow.parameters[
-        "linear_solver"] = "mumps"  # LU did not work for big simulations because of memory capacity ? mumps?
-    solver_flow.parameters["preconditioner"] = "ilu"
-    prm_flow = solver_flow.parameters["krylov_solver"]
-    prm_flow["absolute_tolerance"] = 1E-7
-    prm_flow["relative_tolerance"] = 1E-4
-    prm_flow["maximum_iterations"] = 1000
-    solver_flow.solve()
-    """
     return u_flow
 
 
@@ -150,33 +136,75 @@ def flow_active_darcy(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, d
 
     # Non linear solver
     problem_flow = dolfin.NonlinearVariationalProblem(F=F_flow, u=u_flow, bcs=bcs_flow, J=J_flow)
-    # solver_flow = dolfin.NonlinearVariationalSolver(problem_flow)
     solver_flow = SolverClass(problem=problem_flow)
 
     dolfin.parameters["form_compiler"]["optimize"] = True
     dolfin.parameters["linear_algebra_backend"] = "PETSc"
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 
+    solver_flow.solve()
+
+    return u_flow
+
+
+def flow_passive_div_darcy(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
+                           w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
+                           mu: ufl.indexed.Indexed, theta: float, Ca: float,
+                           k: float) -> dolfin.function.function.Function:
+    """
+    Solves Darcy flow (with the phase field surface tension correction) with no inflow, no activity, with growth
+    :param mesh: mesh
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param w_flow: Function space
+    :param phi: Function, phase
+    :param mu: Function, chemical potential
+    :param theta: friction ratio
+    :param Ca: Capillary number
+    :param k: division parameter
+    :return: solution
+    """
+    # Boundary conditions
+    bcs_flow, domain, boundaries = boundary_conditions_flow_division(w_flow=w_flow, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
+    dx = dolfin.dx(subdomain_data=domain)
+
+    # Continuous viscosity
+    theta_p = theta_phi(theta=theta, phi=phi)
+    k_p = dolfin.Constant(k) * i_phi(phi=phi)
+
+    # Functions
+    du_flow = dolfin.TrialFunction(V=w_flow)  # Used only to calculate the Jacobian
+
+    v_test, p_test = dolfin.TestFunctions(V=w_flow)
+    u_flow = dolfin.Function(w_flow)  # We use Function and not TrialFunction because the problem is non linear
+    velocity, pressure = dolfin.split(u_flow)
+
+    # Problem
+    F_flow = (theta_p * dot(velocity, v_test) + dolfin.Constant(1 / Ca) * phi * dot(v_test, grad(mu))
+              + dot(v_test, grad(pressure)) - dot(velocity, grad(p_test)) - k_p * p_test) * dx
+
+    J_flow = dolfin.derivative(form=F_flow, u=u_flow, du=du_flow)
+
+    # Non linear solver
+    problem_flow = dolfin.NonlinearVariationalProblem(F=F_flow, u=u_flow, bcs=bcs_flow, J=J_flow)
+    solver_flow = dolfin.NonlinearVariationalSolver(problem_flow)
+
     # Solver parameters
-    # prm = solver_flow.parameters
-    # prm["newton_solver"]["absolute_tolerance"] = 1E-7
-    # prm["newton_solver"]["relative_tolerance"] = 1E-4
-    # prm["newton_solver"]["maximum_iterations"] = 1000
-    # prm["newton_solver"]["relaxation_parameter"] = 1.0
-    # dolfin.parameters["form_compiler"]["optimize"] = True
-    # dolfin.parameters["form_compiler"]["cpp_optimize"] = True
-    #
-    # dolfin.PETScOptions.set("ksp_type", "gmres")
-    # dolfin.PETScOptions.set("ksp_monitor")
-    # dolfin.PETScOptions.set("pc_type", "ilu")
-    #
-    # prm["newton_solver"]["linear_solver"] = "mumps"
-    # # prm["newton_solver"]["preconditioner"] = "ilu"
-    # prm["newton_solver"]["krylov_solver"]["absolute_tolerance"] = 1E-7
-    # prm["newton_solver"]["krylov_solver"]["relative_tolerance"] = 1E-4
-    # prm["newton_solver"]["krylov_solver"]["maximum_iterations"] = 1000
-    # prm["newton_solver"]["krylov_solver"]["nonzero_initial_guess"] = True
-    # prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
+    prm = solver_flow.parameters
+    prm["nonlinear_solver"] = "newton"
+    prm["newton_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["relaxation_parameter"] = 1.0
+    dolfin.parameters["form_compiler"]["optimize"] = True
+    dolfin.parameters["form_compiler"]["cpp_optimize"] = True
+
+    prm["newton_solver"]["linear_solver"] = "mumps"
+    prm["newton_solver"]["krylov_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["krylov_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["krylov_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["krylov_solver"]["nonzero_initial_guess"] = True
+    prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
     solver_flow.solve()
 
     return u_flow
@@ -186,8 +214,10 @@ def flow_active_darcy(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, d
 def flow_passive_toner_tu(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: float, dim_y: float,
                           w_flow: dolfin.function.functionspace.FunctionSpace, phi: ufl.indexed.Indexed,
                           mu: ufl.indexed.Indexed, vi: int, theta: float,
-                          Ca: float, velocity_previous: ufl.indexed.Indexed,
-                          velocity_pprevious) -> dolfin.function.function.Function:
+                          Ca: float,
+                          # velocity_previous: ufl.indexed.Indexed,
+                          # velocity_pprevious
+                          ) -> dolfin.function.function.Function:
     """
     Solves Toner-Tu flow (with the phase field surface tension correction) with inflow, no activity, no growth
     :param mesh: mesh
@@ -199,8 +229,8 @@ def flow_passive_toner_tu(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: floa
     :param vi: int, inflow
     :param theta: friction ratio
     :param Ca: Capillary number
-    :param velocity_previous: solution of the velocity for the time n-1
-    :param velocity_pprevious: solution of the velocity for the time n-2
+    #:param velocity_previous: solution of the velocity for the time n-1
+    #:param velocity_pprevious: solution of the velocity for the time n-2
     :return: solution
     """
     # Boundary conditions
@@ -210,6 +240,7 @@ def flow_passive_toner_tu(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: floa
 
     # Continuous viscosity
     theta_p = theta_phi(theta=theta, phi=phi)
+
     ### In case we try to use the norm from the previous time step, somewhat corrected with the material derivative
     # dt = 5e-3 ### Put this in the arguments of the function
     # velocity_previous = dolfin.project(velocity_previous, w_flow.sub(0).collapse())
@@ -315,8 +346,8 @@ class SolverClass(dolfin.NonlinearVariationalSolver):
                                                     "relative_tolerance": 1E-4,
                                                     "maximum_iterations": 500,
                                                     "relaxation_parameter": 1.0,
-                                                    "linear_solver": "gmres",  # or lu
-                                                    "preconditioner": "jacobi",  # if lu, comment that line
+                                                    "linear_solver": "mumps",  # or lu
+                                                    # "preconditioner": "jacobi",  # if lu, comment that line
                                                     "report": True,
                                                     "error_on_nonconvergence": True,
                                                     "krylov_solver": {"absolute_tolerance": 1E-7,
@@ -370,6 +401,34 @@ def boundary_conditions_flow(w_flow: dolfin.function.functionspace.FunctionSpace
     else:
         # Boundary conditions
         bcs_flow = [bc_v_left, bc_p_right]
+
+    return bcs_flow, domain, boundaries
+
+
+def boundary_conditions_flow_division(w_flow: dolfin.function.functionspace.FunctionSpace, dim_x: float, dim_y: float,
+                                      mesh: dolfin.cpp.generation.RectangleMesh) -> [list,
+                                                                                     dolfin.cpp.mesh.MeshFunctionSizet,
+                                                                                     dolfin.cpp.mesh.MeshFunctionSizet]:
+    """
+    Creates the boundary conditions :velocity inflow, pressure out, no-slip condition if no inflow
+    :param w_flow: Function space
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param mesh: mesh
+    :return: array of boundary conditions
+    """
+    domain, boundaries = dom_and_bound(mesh=mesh, dim_x=dim_x, dim_y=dim_y)
+
+    # Boundary conditions for the fluid (inflow and outflow)
+    inflow = dolfin.Expression(("0.0", "0.0"), degree=2)
+    bc_v_left = dolfin.DirichletBC(w_flow.sub(0), inflow, boundaries, 1)
+
+    # Boundary condition for the pressure
+    pressure_out = dolfin.Constant(0.0)
+    bc_p_right = dolfin.DirichletBC(w_flow.sub(1), pressure_out, boundaries, 2)
+
+    # Boundary conditions
+    bcs_flow = [bc_v_left, bc_p_right]
 
     return bcs_flow, domain, boundaries
 

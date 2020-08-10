@@ -88,10 +88,68 @@ def problem_passive(mixed_space: dolfin.function.functionspace.FunctionSpace, di
     dolfin.parameters["form_compiler"]["optimize"] = True
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 
-    dolfin.PETScOptions.set("ksp_type", "gmres")
-    dolfin.PETScOptions.set("ksp_monitor")
-    dolfin.PETScOptions.set("pc_type", "ilu")
+    prm["newton_solver"]["linear_solver"] = "mumps"
+    prm["newton_solver"]["krylov_solver"]["absolute_tolerance"] = 1E-7
+    prm["newton_solver"]["krylov_solver"]["relative_tolerance"] = 1E-4
+    prm["newton_solver"]["krylov_solver"]["maximum_iterations"] = 1000
+    prm["newton_solver"]["krylov_solver"]["nonzero_initial_guess"] = True
+    prm["newton_solver"]["krylov_solver"]["monitor_convergence"] = True
 
+    solver.solve()
+    return u
+
+
+def problem_passive_div(mixed_space: dolfin.function.functionspace.FunctionSpace, dim_x: float, dim_y: float,
+                        mesh: dolfin.cpp.generation.RectangleMesh, phi_0: ufl.indexed.Indexed, dt: float, Pe: float,
+                        Cahn: float, Ca: float, k: float, theta: float):
+    """
+    Creates the variational problem for one time step and solves it, in the passive case with division
+    :param mixed_space: Function space
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param mesh: mesh
+    :param phi_0: solution of the phase from the previous time-step
+    :param dt: time step
+    :param Pe: Peclet number
+    :param Cahn: Cahn number
+    :param Ca: Capillary number
+    :param k: division rate
+    :param theta: viscosity ratio
+    :return: function with the new solutions
+    """
+    # Define the domain
+    bcs, domain, boundaries = boundary_conditions_div(mixed_space=mixed_space, dim_x=dim_x, dim_y=dim_y, mesh=mesh)
+    dx = dolfin.dx(subdomain_data=domain)
+
+    # Functions
+    du = dolfin.TrialFunction(V=mixed_space)  # Used only to calculate the Jacobian
+
+    v_test, p_test, phi_test, mu_test = dolfin.TestFunctions(V=mixed_space)
+    u = dolfin.Function(mixed_space)  # new solution
+    velocity, pressure, phi, mu = dolfin.split(u)
+
+    # Transformations
+    theta_c = dolfin.Constant(.5) * ((dolfin.Constant(1) - phi) + (dolfin.Constant(1) + phi) * dolfin.Constant(theta))
+    k_c = dolfin.Constant(k) * dolfin.Constant(.5) * (dolfin.Constant(1) - phi)
+
+    # Variational problem (implicit time scheme)
+
+    L0 = ((phi * phi_test - phi_0 * phi_test) * dolfin.Constant(1 / dt)
+          + dolfin.Constant(1 / Pe) * (dot(grad(mu), grad(phi_test))) + phi_test * dot(velocity, grad(phi))
+          + k_c * phi * phi_test) * dx
+
+    L1 = (mu * mu_test - (phi ** 3 - phi) * mu_test - dolfin.Constant(Cahn ** 2) * dot(grad(phi), grad(mu_test))) * dx
+
+    L2 = (theta_c * dot(velocity, v_test) + dolfin.Constant(1 / Ca) * phi * dot(v_test, grad(mu))
+          + dot(v_test, grad(pressure)) - dot(velocity, grad(p_test)) - k_c * p_test) * dx
+
+    F = L0 + L1 + L2
+
+    J = dolfin.derivative(form=F, u=u, du=du)
+
+    # Problem
+    problem = dolfin.NonlinearVariationalProblem(F=F, u=u, bcs=bcs, J=J)
+    solver = SolverClass(problem=problem)
     solver.solve()
     return u
 
@@ -152,23 +210,9 @@ def problem_active(mixed_space: dolfin.function.functionspace.FunctionSpace, dim
 
     # Problem
     problem = dolfin.NonlinearVariationalProblem(F=F, u=u, bcs=bcs, J=J)
-    # solver = dolfin.NonlinearVariationalSolver(problem)
     solver = SolverClass(problem=problem)
 
-    # Solver
-    # prm = solver.parameters
-    # prm["newton_solver"]["absolute_tolerance"] = 1E-7
-    # prm["newton_solver"]["relative_tolerance"] = 1E-4
-    # prm["newton_solver"]["maximum_iterations"] = 1000
-    # prm["newton_solver"]["relaxation_parameter"] = 1.0
-    # dolfin.parameters["form_compiler"]["optimize"] = True
-    # dolfin.parameters["form_compiler"]["cpp_optimize"] = True
-    # dolfin.PETScOptions.set("ksp_type", "gmres")
-    # dolfin.PETScOptions.set("ksp_monitor")
-    # dolfin.PETScOptions.set("pc_type", "ilu")
-
     dolfin.parameters["form_compiler"]["optimize"] = True
-
     dolfin.parameters["linear_algebra_backend"] = "PETSc"
     dolfin.parameters["form_compiler"]["cpp_optimize"] = True
 
@@ -313,16 +357,16 @@ class SolverClass(dolfin.NonlinearVariationalSolver):
                                                     "relative_tolerance": 1E-4,
                                                     "maximum_iterations": 500,
                                                     "relaxation_parameter": 1.0,
-                                                    "linear_solver": "lu",
+                                                    "linear_solver": 'mumps',
                                                     # "preconditioner": "jacobi",
                                                     "report": True,
                                                     "error_on_nonconvergence": True,
-                                                    # "krylov_solver": {"absolute_tolerance": 1E-7,
-                                                    #                   "relative_tolerance": 1E-4,
-                                                    #                   "maximum_iterations": 1000,
-                                                    #                   "monitor_convergence": True,
-                                                    #                   "nonzero_initial_guess": False,
-                                                    #                   }
+                                                    "krylov_solver": {"absolute_tolerance": 1E-7,
+                                                                      "relative_tolerance": 1E-4,
+                                                                      "maximum_iterations": 1000,
+                                                                      "monitor_convergence": True,
+                                                                      "nonzero_initial_guess": False,
+                                                                      }
                                                     }
                                   }
 
@@ -378,6 +422,40 @@ def boundary_conditions(mixed_space: dolfin.function.functionspace.FunctionSpace
     return bcs, domain, boundaries
 
 
+def boundary_conditions_div(mixed_space: dolfin.function.functionspace.FunctionSpace, dim_x: float, dim_y: float,
+                            mesh: dolfin.cpp.generation.RectangleMesh) -> [list, dolfin.cpp.mesh.MeshFunctionSizet]:
+    """
+    Sets the Dirichlet boundary conditions for all the problem in the passive division set-up
+    :param mixed_space: Function space
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param mesh: mesh
+    :return: array of boundary conditions
+    """
+    domain, boundaries = dom_and_bound(mesh=mesh, dim_x=dim_x, dim_y=dim_y)
+
+    # Boundary conditions for the fluid (inflow)
+    inflow = dolfin.Expression(("0.0", "0.0"), degree=2)
+    bc_v_left = dolfin.DirichletBC(mixed_space.sub(0), inflow, boundaries, 1)
+
+    # Boundary condition for the pressure
+    pressure_out = dolfin.Constant(0.0)
+    bc_p_right = dolfin.DirichletBC(mixed_space.sub(1), pressure_out, boundaries, 2)
+
+    # Boundary conditions for the phase
+    bc_phi_left = dolfin.DirichletBC(mixed_space.sub(2), dolfin.Constant(-1.0), boundaries, 1)  # phi = -1 on the left
+    bc_phi_right = dolfin.DirichletBC(mixed_space.sub(2), dolfin.Constant(1.0), boundaries, 2)  # phi = +1 on the right
+
+    # Boundary conditions for mu
+    bc_mu_left = dolfin.DirichletBC(mixed_space.sub(3), dolfin.Constant(0.0), boundaries, 1)  # mu = 0 on left and right
+    bc_mu_right = dolfin.DirichletBC(mixed_space.sub(3), dolfin.Constant(0.0), boundaries, 2)
+
+    # Boundary conditions
+    bcs = [bc_v_left, bc_p_right, bc_phi_left, bc_phi_right, bc_mu_left, bc_mu_right]
+
+    return bcs, domain, boundaries
+
+
 def initiation_of_the_phase(h_0, k_wave, Cahn, start):
     phi_0 = dolfin.Expression("tanh((x[0] - start + h_0 * cos(x[1] * k_wave)) / (Cahn * sqrt(2)))", degree=1, h_0=h_0,
                               Cahn=Cahn, k_wave=k_wave, start=start)
@@ -391,7 +469,28 @@ def initiation_of_the_phase(h_0, k_wave, Cahn, start):
 def time_evolution_general(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y: int, dt: float, n: int,
                            mixed_space: dolfin.function.functionspace.FunctionSpace, theta: float, Cahn: float,
                            Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float, vi: int,
-                           alpha: float, folder_name: str) -> None:
+                           alpha: float, k: float, folder_name: str) -> None:
+    """
+
+    :param mesh: mesh
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of t
+    :param dt: time step
+    :param n: number of time steps
+    :param mixed_space: Function space
+    :param theta: friction ratio
+    :param Cahn: Cahn number
+    :param Pe: Peclet number
+    :param Ca: Capillary number
+    :param starting_point: float, where the interface is at the beginning
+    :param h_0: amplitude of the perturbation
+    :param k_wave: wave number of the perturbation
+    :param vi: Initial velocity
+    :param alpha: activity
+    :param k: division parameter
+    :param folder_name: name of the folder where files should be saved
+    :return:
+    """
     t_ini_1 = time.time()
 
     # Initiate the phase
@@ -414,20 +513,38 @@ def time_evolution_general(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int
 
     if alpha == 0:
         print('Simulation without activity')
-        for i in range(starting_time + 1, n):
-            t_1 = time.time()
+        if k == 0:
+            print('No division')
+            for i in range(starting_time + 1, n):
+                t_1 = time.time()
 
-            # Solve everything
-            u = problem_passive(mixed_space=mixed_space, dim_x=dim_x, dim_y=dim_y, mesh=mesh, phi_0=phi_0, dt=dt, Pe=Pe,
-                                Cahn=Cahn, Ca=Ca, vi=vi, theta=theta)
+                # Solve everything
+                u = problem_passive(mixed_space=mixed_space, dim_x=dim_x, dim_y=dim_y, mesh=mesh, phi_0=phi_0, dt=dt,
+                                    Pe=Pe, Cahn=Cahn, Ca=Ca, vi=vi, theta=theta)
 
-            _, _, phi_0, _ = dolfin.split(u)
+                _, _, phi_0, _ = dolfin.split(u)
 
-            # Save the solutions for the phase and the flow
-            save_HDF5(function=u, function_name="Functions", time_simu=i, folder_name=folder_name, mesh=mesh)
+                # Save the solutions for the phase and the flow
+                save_HDF5(function=u, function_name="Functions", time_simu=i, folder_name=folder_name, mesh=mesh)
 
-            t_2 = time.time()
-            print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
+                t_2 = time.time()
+                print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
+        else:
+            print('Division')
+            for i in range(starting_time + 1, n):
+                t_1 = time.time()
+
+                # Solve everything
+                u = problem_passive_div(mixed_space=mixed_space, dim_x=dim_x, dim_y=dim_y, mesh=mesh, phi_0=phi_0,
+                                        dt=dt, Pe=Pe, Cahn=Cahn, Ca=Ca, k=k, theta=theta)
+
+                _, _, phi_0, _ = dolfin.split(u)
+
+                # Save the solutions for the phase and the flow
+                save_HDF5(function=u, function_name="Functions", time_simu=i, folder_name=folder_name, mesh=mesh)
+
+                t_2 = time.time()
+                print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
     else:
         print('Simulation with activity')
         for i in range(starting_time + 1, n):

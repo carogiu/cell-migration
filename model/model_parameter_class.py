@@ -21,6 +21,7 @@ class ModelParam:
     theta:          float, friction ratio
     alpha:          float, activity
     vi:             int, inflow velocity
+    k:              float, growth parameter
     Cahn:           float, Cahn number
     Pe:             float, Peclet number
     Ca_star:        float, capillary number for classic model without the phase field (in our case, 1)
@@ -36,7 +37,7 @@ class ModelParam:
 
     def __init__(self, h: float, dim_x: float, dim_y: float, n: int, dt: float, theta: float, alpha: float, vi: int,
                  Cahn: float, Pe: int, starting_point: float, h_0: float, k_wave: float, folder_name: str,
-                 model_type: str) -> None:
+                 model_type: str, k: float) -> None:
         # Grid parameters
         self.h = h
         self.dim_x = dim_x
@@ -52,6 +53,7 @@ class ModelParam:
         self.theta = theta
         self.alpha = alpha
         self.vi = vi
+        self.k = k
         self.Cahn = Cahn
         self.Pe = Pe
         self.Ca_star = 1
@@ -69,7 +71,7 @@ class ModelParam:
 
 def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, dt: float, theta: float, alpha: float,
                vi: int, Cahn: float, Pe: float, Ca: float, starting_point: float, h_0: float, k_wave: float,
-               model: str) -> str:
+               model: str, k: float) -> str:
     """
     Saves the parameters in a text file + returns the name of the folder for other saves
     :param h: smallest element of the grid
@@ -89,10 +91,11 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
     :param h_0: amplitude of the perturbation
     :param k_wave: wave number of the perturbation
     :param model: type of model (Darcy or Toner-Tu)
+    :param k: division rate
     :return: string, name of the folder where files should be saved
     """
 
-    if vi == 0:  # No inflow: no preferred wave length, sigma<0 (not calculated yet for Toner-Tu)
+    if vi == 0:  # No inflow: no preferred wave length, sigma<0 (not calculated yet for Toner-Tu and growth)
         q = 0
         sigma = -(k_wave ** 3 - 1) / theta
 
@@ -114,6 +117,10 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
         else:  # High activity regime, no analytical solution
             q = 0
             sigma = 0
+    if k != 0:
+        d_0 = starting_point + dim_x / 2
+        q = np.sqrt((theta - 1) * k * d_0 / 3)
+        sigma = (k + (theta - 1) * k * d_0 * q - q ** 3) / (theta + 1)
 
     # Create new folder to save the parameters
     t = time.localtime()
@@ -141,6 +148,6 @@ def save_param(h: float, dim_x: float, dim_y: float, nx: int, ny: int, n: int, d
                + "\n starting_point= " + str(starting_point)
                + "\n h_0= " + str(h_0) + "\n k_wave= " + str(k_wave)
                + "\n sigma= " + str(sigma) + "\n q= " + str(q)
-               + "\n alpha= " + str(alpha) + "\n vi= " + str(vi) + "\n model= " + str(model))
+               + "\n alpha= " + str(alpha) + "\n vi= " + str(vi) + "\n model= " + str(model) + "\n k= " + str(k))
     file.close()
     return folder_name

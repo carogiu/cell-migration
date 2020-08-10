@@ -4,7 +4,8 @@ import time
 
 ### Imports
 from model.model_phase import initiate_phase, problem_phase_implicit
-from model.model_flow import flow_passive_darcy, flow_active_darcy, flow_passive_toner_tu, flow_active_toner_tu
+from model.model_flow import flow_passive_darcy, flow_active_darcy, flow_passive_div_darcy, flow_passive_toner_tu, \
+    flow_active_toner_tu
 from model.model_save_evolution import save_HDF5
 
 
@@ -44,16 +45,42 @@ def initiate_functions(space_ME: dolfin.function.functionspace.FunctionSpace, Ca
     return u0, phi_0, velocity
 
 
+def initiate_functions_div(space_ME: dolfin.function.functionspace.FunctionSpace, Cahn: float, h_0: float,
+                           k_wave: float, starting_point: float, k: float, dim_x: float):
+    """
+    Initiates the test and trial functions for the phase, and the initial flow, when we simulate the division
+    :param space_ME: function space of the phase
+    :param Cahn: Cahn number
+    :param h_0: amplitude of the initial instability
+    :param k_wave: wave number of the initial instability
+    :param starting_point: initial position of the interface
+    :param k: division parameter
+    :param dim_x: dimension in x
+    :return: initiated functions
+    """
+    # Initiate the phase and the instability
+
+    u0, phi_0 = initiate_phase(space_ME=space_ME, Cahn=Cahn, h_0=h_0, k_wave=k_wave, starting_point=starting_point)
+
+    # Initiate the velocity field
+    velocity = dolfin.Expression(("x[0] < start + h_0 * cos(x[1] * k_wave) ? k*x[0] : k*(dim_x/2 + start)", "0.0"),
+                                 degree=2, start=starting_point, h_0=h_0, k_wave=k_wave, k=k, dim_x=dim_x)
+
+    return u0, phi_0, velocity
+
+
 ### All these functions are only used in the case where we solve separately the phase and the flow
 
 # DARCY
 ## Passive
+### No division
+
 def main_solver_passive_darcy(space_ME: dolfin.function.functionspace.FunctionSpace,
                               w_flow: dolfin.function.functionspace.FunctionSpace, dim_x: float, dim_y: float,
                               mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity, dt: float, Pe: float,
                               Cahn: float, theta: float, Ca: float, vi: int):
     """
-    Main solver for the phase and the flow
+    Main solver for the phase and the flow in the passive set-up
     :param space_ME: function space for the phase
     :param w_flow: function space for the flow
     :param dim_x: dimension in the direction of x
@@ -143,6 +170,104 @@ def time_evolution_passive_darcy_2_solvers(mesh: dolfin.cpp.generation.Rectangle
     return
 
 
+### Division
+
+def main_solver_passive_div_darcy(space_ME: dolfin.function.functionspace.FunctionSpace,
+                                  w_flow: dolfin.function.functionspace.FunctionSpace, dim_x: float, dim_y: float,
+                                  mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity, dt: float, Pe: float,
+                                  Cahn: float, theta: float, Ca: float, k: float):
+    """
+    Main solver for the phase and the flow in the division set-up
+    :param space_ME: function space for the phase
+    :param w_flow: function space for the flow
+    :param dim_x: dimension in the direction of x
+    :param dim_y: dimension in the direction of y
+    :param mesh: mesh
+    :param phi_0: function
+    :param u0: function
+    :param velocity: function
+    :param dt: time step
+    :param Pe: Peclet number
+    :param Cahn: Cahn number
+    :param theta: viscosity ratio
+    :param Ca: Capillary number
+    :param k: division parameter
+    :return: solutions for the next step
+    """
+
+    # First, solve the phase
+    u_phase = problem_phase_implicit(space_ME=space_ME, dim_x=dim_x, dim_y=dim_y, mesh=mesh, phi_0=phi_0,
+                                     velocity=velocity, dt=dt, Pe=Pe, Cahn=Cahn)
+
+    # Then, update the value of phi(n), u(n), phi(n+1), mu(n+1) (the values are stored in u0)
+    u0.vector()[:] = u_phase.vector()
+    phi_0, mu_0 = dolfin.split(u0)
+
+    # Finally, solve the flow with the new values of phi and mu
+    u_flow = flow_passive_div_darcy(mesh=mesh, dim_x=dim_x, dim_y=dim_y, w_flow=w_flow, phi=phi_0, mu=mu_0, theta=theta,
+                                    Ca=Ca, k=k)
+    velocity, pressure = u_flow.split()
+
+    return u0, phi_0, u_flow, velocity, pressure
+
+
+def time_evolution_passive_div_darcy_2_solvers(mesh: dolfin.cpp.generation.RectangleMesh, dim_x: int, dim_y: int,
+                                               dt: float, n: int, space_ME: dolfin.function.functionspace.FunctionSpace,
+                                               w_flow: dolfin.function.functionspace.FunctionSpace, theta: float,
+                                               Cahn: float, Pe: float, Ca: float, k: float, starting_point: float,
+                                               h_0: float, k_wave: float, folder_name: str) -> None:
+    """
+    :param mesh: dolfin mesh
+    :param dim_y: dimension in the direction of y
+    :param dim_x: dimension in the direction of x
+    :param n: number of time steps
+    :param dt: time step
+    :param space_ME: Function space, for the phase
+    :param w_flow: Function space, for the flow
+    :param theta: friction ratio
+    :param Cahn: Cahn number
+    :param Pe: Peclet number
+    :param Ca: Capillary number
+    :param k: division parameter
+    :param starting_point : float, where the interface is at the beginning
+    :param h_0: amplitude of the perturbation
+    :param k_wave: wave number of the perturbation
+    :param folder_name: name of the folder where files should be saved
+    :return:
+    """
+    t_ini_1 = time.time()
+
+    # Initiate the functions
+    u0, phi_0, velocity = initiate_functions_div(space_ME=space_ME, Cahn=Cahn, h_0=h_0, k_wave=k_wave,
+                                                 starting_point=starting_point, dim_x=dim_x, k=k)
+
+    # Save the initial phase
+    save_HDF5(function=u0, function_name="Phi_and_mu", time_simu=0, folder_name=folder_name, mesh=mesh)
+
+    t_ini_2 = time.time()
+    print('Initiation time = ' + str(t_ini_2 - t_ini_1) + ' seconds')
+
+    # Solve through time
+    for i in range(1, n):
+        t_1 = time.time()
+
+        # Solve everything
+        u0, phi_0, u_flow, velocity, pressure = main_solver_passive_div_darcy(space_ME=space_ME, w_flow=w_flow,
+                                                                              dim_x=dim_x, dim_y=dim_y, mesh=mesh,
+                                                                              phi_0=phi_0, u0=u0, velocity=velocity,
+                                                                              dt=dt, Pe=Pe, Cahn=Cahn, theta=theta,
+                                                                              Ca=Ca, k=k)
+
+        # Save the solutions for the phase and the flow
+        save_HDF5(function=u0, function_name="Phi_and_mu", time_simu=i, folder_name=folder_name, mesh=mesh)
+        save_HDF5(function=u_flow, function_name="V_and_P", time_simu=i, folder_name=folder_name, mesh=mesh)
+
+        t_2 = time.time()
+        print('Progress = ' + str(i + 1) + '/' + str(n) + ', Computation time = ' + str(t_2 - t_1) + ' seconds')
+
+    return
+
+
 ## Active
 
 def main_solver_active_darcy(space_ME: dolfin.function.functionspace.FunctionSpace,
@@ -150,7 +275,7 @@ def main_solver_active_darcy(space_ME: dolfin.function.functionspace.FunctionSpa
                              mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity, dt: float, Pe: float,
                              Cahn: float, theta: float, alpha: float, Ca: float, vi: int):
     """
-    Main solver for the phase and the flow
+    Main solver for the phase and the flow in the active set-up
     :param space_ME: function space for the phase
     :param w_flow: function space for the flow
     :param dim_x: dimension in the direction of x
@@ -248,8 +373,7 @@ def main_solver_passive_toner_tu(space_ME: dolfin.function.functionspace.Functio
                                  mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity_n1, velocity_n2,
                                  dt: float, Pe: float, Cahn: float, theta: float, Ca: float, vi: int):
     """
-    Main solver for the phase and the flow
-
+    Main solver for the phase and the flow for the passive Toner-Tu set-up
     :param space_ME: function space for the phase
     :param w_flow: function space for the flow
     :param dim_x: dimension in the direction of x
@@ -353,7 +477,7 @@ def main_solver_active_toner_tu(space_ME: dolfin.function.functionspace.Function
                                 mesh: dolfin.cpp.generation.RectangleMesh, phi_0, u0, velocity, dt: float, Pe: float,
                                 Cahn: float, theta: float, alpha: float, Ca: float, vi: int):
     """
-    Main solver for the phase and the flow
+    Main solver for the phase and the flow for the active Toner-Tu set-up
     :param space_ME: function space for the phase
     :param w_flow: function space for the flow
     :param dim_x: dimension in the direction of x
